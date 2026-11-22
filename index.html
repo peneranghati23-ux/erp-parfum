@@ -1,0 +1,2688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Atelier Parfum — Sistem ERP & Produksi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #FAF8F5;
+      color: #1C1917;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-serif-brand {
+      font-family: 'Cormorant Garamond', serif;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-container" class="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#F5F0E8] via-[#FAF8F5] to-[#EFE7DB]">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-stone-200/80 p-7 sm:p-9">
+      <div class="text-center mb-7">
+        <div class="w-14 h-14 rounded-2xl bg-stone-900 text-amber-300 flex items-center justify-center mx-auto mb-4 shadow-md">
+          <i data-lucide="flask-conical" class="w-7 h-7"></i>
+        </div>
+        <h1 class="font-serif-brand text-3xl font-bold text-stone-900 tracking-tight">Atelier Parfum ERP</h1>
+        <p class="text-sm text-stone-500 mt-1">Sistem Formula (BJ), Jerigen Bulk, HPP & Keuangan</p>
+      </div>
+
+      <form id="login-form" onsubmit="event.preventDefault();" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">Email Akun</label>
+          <input type="email" id="login-email" required placeholder="nama@email.com"
+            class="w-full px-4 py-3 rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-700 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••"
+            class="w-full px-4 py-3 rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-700 text-sm" />
+        </div>
+        <div id="login-error" class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-3"></div>
+        <button type="submit" id="login-btn"
+          class="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-sm">
+          <span>Masuk ke Sistem</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION -->
+  <div id="app-shell" class="hidden flex-1 flex flex-col pb-20 sm:pb-8">
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-stone-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-stone-900 text-amber-300 flex items-center justify-center shrink-0">
+            <i data-lucide="flask-conical" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-serif-brand text-xl font-bold text-stone-900 leading-none">Atelier Parfum</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cloud Sync
+              </span>
+            </div>
+            <p id="active-user-email" class="text-[11px] text-stone-500 truncate max-w-[180px] sm:max-w-xs"></p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="loadAllData(true)" title="Refresh Data"
+            class="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-100 transition">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+          <button onclick="handleLogout()"
+            class="px-3 py-2 rounded-xl border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition flex items-center gap-1.5">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- DESKTOP NAVIGATION TABS -->
+      <nav class="hidden sm:block border-t border-stone-100 bg-stone-50/60">
+        <div class="max-w-7xl mx-auto px-6 flex gap-1">
+          <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-tab px-4 py-3 text-sm font-semibold border-b-2 border-stone-900 text-stone-900 flex items-center gap-2">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+          </button>
+          <button onclick="switchTab('ingredients')" data-tab="ingredients" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2">
+            <i data-lucide="package" class="w-4 h-4"></i> Bahan Baku & Kemasan
+          </button>
+          <button onclick="switchTab('formulas')" data-tab="formulas" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Formula & HPP
+          </button>
+          <button onclick="switchTab('production')" data-tab="production" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2">
+            <i data-lucide="factory" class="w-4 h-4"></i> Produksi & Jerigen
+          </button>
+          <button onclick="switchTab('sales')" data-tab="sales" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2">
+            <i data-lucide="wallet" class="w-4 h-4"></i> Penjualan & Kas
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 sm:py-7">
+
+      <!-- EMPTY STATE BANNER -->
+      <div id="empty-seed-banner" class="hidden mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-stone-900 text-sm sm:text-base">Database Masih Kosong</h3>
+          <p class="text-xs sm:text-sm text-stone-600 mt-0.5">Isi data contoh bisnis parfum (alkohol BJ 0,805, batch jerigen maserasi, dan alokasi biaya operasional)?</p>
+        </div>
+        <button onclick="seedSampleData()" id="seed-btn"
+          class="px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs sm:text-sm font-semibold shrink-0 shadow-sm transition">
+          + Isi Data Contoh Parfum
+        </button>
+      </div>
+
+      <!-- ==================== TAB 1: DASHBOARD ==================== -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div class="bg-stone-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm col-span-2 lg:col-span-1">
+            <div class="flex items-center justify-between text-stone-400 text-xs font-medium">
+              <span>SALDO KAS BISNIS</span>
+              <i data-lucide="landmark" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <p id="kpi-cash" class="text-2xl sm:text-3xl font-bold mt-2 tracking-tight">Rp 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Modal + Omzet Bersih − Belanja & Ops Ekstra</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/80 shadow-sm">
+            <div class="flex items-center justify-between text-stone-500 text-xs font-medium">
+              <span>KEUNTUNGAN BERSIH</span>
+              <i data-lucide="trending-up" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <p id="kpi-profit" class="text-xl sm:text-2xl font-bold text-emerald-700 mt-2">Rp 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Omzet − Bahan & Kemasan − Biaya Ops</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/80 shadow-sm">
+            <div class="flex items-center justify-between text-stone-500 text-xs font-medium">
+              <span>OMZET PENJUALAN</span>
+              <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-700"></i>
+            </div>
+            <p id="kpi-revenue" class="text-xl sm:text-2xl font-bold text-stone-900 mt-2">Rp 0</p>
+            <p id="kpi-units-sold" class="text-[11px] text-stone-400 mt-1">0 botol terjual</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/80 shadow-sm">
+            <div class="flex items-center justify-between text-stone-500 text-xs font-medium">
+              <span>BIAYA OPERASIONAL</span>
+              <i data-lucide="receipt" class="w-4 h-4 text-blue-600"></i>
+            </div>
+            <p id="kpi-opex" class="text-lg sm:text-xl font-bold text-blue-800 mt-2">Rp 0</p>
+            <p id="kpi-opex-sub" class="text-[11px] text-stone-400 mt-1">Botol: Rp 0 • Ekstra: Rp 0</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/80 shadow-sm">
+            <div class="flex items-center justify-between text-stone-500 text-xs font-medium">
+              <span>MODAL BAHAN & KEMASAN</span>
+              <i data-lucide="layers" class="w-4 h-4 text-stone-600"></i>
+            </div>
+            <p id="kpi-cogs" class="text-lg sm:text-xl font-bold text-stone-900 mt-2">Rp 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">HPP fisik produk terjual</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/80 shadow-sm">
+            <div class="flex items-center justify-between text-stone-500 text-xs font-medium">
+              <span>MODAL DISETOR</span>
+              <i data-lucide="piggy-bank" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <p id="kpi-capital" class="text-lg sm:text-xl font-bold text-stone-900 mt-2">Rp 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Total suntikan modal awal</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- STOK BARANG JADI & JERIGEN -->
+          <div class="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-bold text-stone-900 flex items-center gap-2">
+                <i data-lucide="spray-can" class="w-4 h-4 text-amber-700"></i>
+                Stok Parfum Siap Jual (Botol)
+              </h2>
+              <button onclick="switchTab('production')" class="text-xs font-semibold text-amber-800 hover:underline">Kelola Batch & Jerigen</button>
+            </div>
+            <div id="dash-finished-goods" class="space-y-2.5"></div>
+            <div id="dash-bulk-summary" class="pt-3 border-t border-stone-100"></div>
+          </div>
+
+          <!-- PERINGATAN STOK MENIPIS -->
+          <div class="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-bold text-stone-900 flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                Peringatan Stok Bahan & Kemasan
+              </h2>
+              <button onclick="switchTab('ingredients')" class="text-xs font-semibold text-amber-800 hover:underline">Kelola Stok</button>
+            </div>
+            <div id="dash-low-stock" class="space-y-2.5"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-stone-900 flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-stone-600"></i>
+              Aktivitas & Mutasi Terakhir
+            </h2>
+            <button onclick="switchTab('sales')" class="text-xs font-semibold text-amber-800 hover:underline">Lihat Semua</button>
+          </div>
+          <div id="dash-recent-tx" class="divide-y divide-stone-100"></div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: BAHAN BAKU & PACKAGING ==================== -->
+      <section id="tab-ingredients" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-stone-900">Master Bahan Baku & Packaging</h2>
+            <p class="text-xs sm:text-sm text-stone-500">Input Liter/mL otomatis dikonversi ke <strong>gram</strong> berdasarkan <strong>BJ (g/mL)</strong>.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openRestockModal()"
+              class="px-3.5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Restock Belanja
+            </button>
+            <button onclick="openIngredientModal()"
+              class="px-3.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i> Item Baru
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button onclick="filterIngredients('ALL')" data-cat="ALL" class="ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-stone-900 text-white shrink-0">Semua</button>
+          <button onclick="filterIngredients('Bibit Parfum')" data-cat="Bibit Parfum" class="ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-600 shrink-0">Bibit Parfum</button>
+          <button onclick="filterIngredients('Pelarut & Fixative')" data-cat="Pelarut & Fixative" class="ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-600 shrink-0">Pelarut & Fixative</button>
+          <button onclick="filterIngredients('Packaging')" data-cat="Packaging" class="ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-600 shrink-0">Packaging</button>
+        </div>
+
+        <div id="ingredients-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </section>
+
+      <!-- ==================== TAB 3: FORMULA & HPP ==================== -->
+      <section id="tab-formulas" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-stone-900">Formula Parfum & Kalkulator HPP</h2>
+            <p class="text-xs sm:text-sm text-stone-500">HPP mencakup <strong>Bahan Cair (berbasis BJ) + Kemasan + Alokasi Biaya Operasional</strong>.</p>
+          </div>
+          <button onclick="openFormulaModal()"
+            class="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Buat Formula Baru
+          </button>
+        </div>
+
+        <div id="formulas-list" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      </section>
+
+      <!-- ==================== TAB 4: PRODUKSI BATCH, JERIGEN & TERJUAL ==================== -->
+      <section id="tab-production" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- FORM RACIK BATCH BARU -->
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm self-start">
+            <h2 class="text-lg font-bold text-stone-900 mb-1">Racik Produksi Batch Baru</h2>
+            <p class="text-xs text-stone-500 mb-4">Pilih simpan di <strong>Jerigen (Bulk)</strong> dulu atau langsung kemas ke botol.</p>
+
+            <form id="production-form" onsubmit="event.preventDefault();" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1">Pilih Formula Varian</label>
+                <select id="prod-formula" required onchange="updateProductionPreview()"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm focus:outline-none focus:border-amber-700">
+                  <option value="">-- Pilih Formula --</option>
+                </select>
+              </div>
+
+              <!-- MODE PENYIMPANAN HASIL RACIKAN -->
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Metode Hasil Produksi</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="prod-mode" value="bulk" checked onchange="updateProductionPreview()" class="peer sr-only" />
+                    <div class="p-2.5 rounded-xl border border-stone-200 peer-checked:border-amber-700 peer-checked:bg-amber-50/80 transition">
+                      <p class="text-xs font-bold text-stone-900">Simpan di Jerigen</p>
+                      <p class="text-[10px] text-stone-500 mt-0.5">Potong bahan cair saja. Kemasan dipotong saat siap jual.</p>
+                    </div>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="prod-mode" value="bottled" onchange="updateProductionPreview()" class="peer sr-only" />
+                    <div class="p-2.5 rounded-xl border border-stone-200 peer-checked:border-stone-900 peer-checked:bg-stone-100 transition">
+                      <p class="text-xs font-bold text-stone-900">Langsung Kemas Botol</p>
+                      <p class="text-[10px] text-stone-500 mt-0.5">Langsung potong bahan cair + seluruh packaging.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Target Kapasitas (Botol)</label>
+                  <input type="number" id="prod-qty" min="1" value="20" required oninput="updateProductionPreview()"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Kode Batch / Jerigen</label>
+                  <input type="text" id="prod-code" required
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Tanggal Racik</label>
+                  <input type="date" id="prod-date" required onchange="updateMacerationDate()"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Target Selesai Maserasi</label>
+                  <input type="date" id="prod-maceration-end" required
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+              </div>
+
+              <div id="prod-preview-box" class="hidden rounded-xl bg-stone-50 border border-stone-200 p-3.5 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-1">
+                  <span class="text-xs font-bold uppercase tracking-wider text-stone-700">Takaran Timbang Batch</span>
+                  <span id="prod-est-hpp" class="text-xs font-semibold text-amber-800"></span>
+                </div>
+                <p id="prod-mix-info" class="text-[11px] text-stone-600 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200/70"></p>
+                <div id="prod-req-list" class="space-y-1.5 text-xs"></div>
+              </div>
+
+              <button type="submit" id="prod-submit-btn"
+                class="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold text-sm transition shadow-sm">
+                Simpan Produksi
+              </button>
+            </form>
+          </div>
+
+          <!-- DAFTAR BATCH, JERIGEN, KEMAS BOTOL & EDIT TERJUAL -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div>
+                <h2 class="text-lg font-bold text-stone-900">Stok Jerigen, Kemas Botol & Terjual</h2>
+                <p class="text-xs text-stone-500">Kemas dari jerigen untuk potong packaging, lalu edit angka <strong>Terjual</strong> untuk update Omzet, Ops & Profit otomatis.</p>
+              </div>
+            </div>
+            <div id="batches-list" class="space-y-4"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: PENJUALAN & ARUS KAS ==================== -->
+      <section id="tab-sales" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+            <h2 class="text-lg font-bold text-stone-900 mb-1 flex items-center gap-2">
+              <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-700"></i>
+              Catat Penjualan Produk (Per Order)
+            </h2>
+            <p class="text-xs text-stone-500 mb-4">Otomatis memotong stok botol siap jual, update batch terjual, dan menghitung Omzet, Ops & Profit.</p>
+
+            <form id="sale-form" onsubmit="event.preventDefault();" class="space-y-3.5">
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1">Varian Parfum Terjual</label>
+                <select id="sale-fg" required onchange="onSaleProductChange()"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm focus:outline-none focus:border-amber-700">
+                  <option value="">-- Pilih Varian --</option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Jumlah Terjual (pcs)</label>
+                  <input type="number" id="sale-qty" min="1" value="1" required oninput="updateSalePreview()"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Channel Jualan</label>
+                  <select id="sale-channel"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm focus:outline-none focus:border-amber-700">
+                    <option value="Shopee">Shopee</option>
+                    <option value="TikTok Shop">TikTok Shop</option>
+                    <option value="WhatsApp / DM">WhatsApp / DM</option>
+                    <option value="Offline / Event">Offline / Event</option>
+                    <option value="Tokopedia">Tokopedia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Harga Jual / pcs (Rp)</label>
+                  <input type="number" id="sale-price" min="0" required oninput="updateSalePreview()"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Potongan Admin / Diskon (Rp)</label>
+                  <input type="number" id="sale-fee" min="0" value="0" oninput="updateSalePreview()"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Tanggal</label>
+                  <input type="date" id="sale-date" required
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1">Catatan (Opsional)</label>
+                  <input type="text" id="sale-note" placeholder="Misal: Order Kak Rina"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                </div>
+              </div>
+
+              <div id="sale-summary-box" class="rounded-xl bg-emerald-50/70 border border-emerald-200 p-3 text-xs space-y-1">
+                <div class="flex justify-between text-stone-600">
+                  <span>Omzet Bersih Masuk:</span>
+                  <span id="sale-net-preview" class="font-bold text-stone-900">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-blue-800">
+                  <span>Alokasi Biaya Operasional:</span>
+                  <span id="sale-ovh-preview" class="font-semibold">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-emerald-800 pt-1 border-t border-emerald-200/70">
+                  <span>Estimasi Keuntungan Bersih:</span>
+                  <span id="sale-profit-preview" class="font-bold">Rp 0</span>
+                </div>
+              </div>
+
+              <button type="submit" id="sale-submit-btn"
+                class="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm transition shadow-sm">
+                Simpan Penjualan & Potong Stok
+              </button>
+            </form>
+          </div>
+
+          <div class="lg:col-span-6 bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-stone-900 mb-1 flex items-center gap-2">
+                <i data-lucide="banknote" class="w-4 h-4 text-blue-700"></i>
+                Catat Modal & Biaya Operasional Ekstra
+              </h2>
+              <p class="text-xs text-stone-500 mb-4">Input suntikan modal usaha atau pengeluaran tunai terpisah di luar alokasi per botol (iklan ads, endorse, dll).</p>
+
+              <form id="cashflow-form" onsubmit="event.preventDefault();" class="space-y-3.5">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-stone-700 mb-1">Jenis Transaksi</label>
+                    <select id="cf-type"
+                      class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm focus:outline-none focus:border-amber-700">
+                      <option value="Modal Masuk">Modal Masuk (+ Kas)</option>
+                      <option value="Biaya Operasional">Biaya Operasional Ekstra (− Kas)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-stone-700 mb-1">Nominal (Rp)</label>
+                    <input type="number" id="cf-amount" min="1" required placeholder="500000"
+                      class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-stone-700 mb-1">Tanggal</label>
+                    <input type="date" id="cf-date" required
+                      class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-stone-700 mb-1">Keterangan</label>
+                    <input type="text" id="cf-desc" required placeholder="Misal: Modal awal berdua / Iklan"
+                      class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-amber-700" />
+                  </div>
+                </div>
+
+                <button type="submit"
+                  class="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-sm transition shadow-sm">
+                  Simpan ke Buku Kas
+                </button>
+              </form>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+              <span>Ingin hapus semua data simulasi/tes?</span>
+              <button onclick="clearAllData()" class="text-rose-600 font-semibold hover:underline">Reset Kosongkan Data</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 class="font-bold text-stone-900">Buku Besar Arus Kas & Penjualan</h3>
+            <select id="tx-filter" onchange="renderTransactions()"
+              class="px-3 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold bg-white">
+              <option value="ALL">Semua Transaksi</option>
+              <option value="Penjualan">Penjualan</option>
+              <option value="Belanja Bahan">Belanja Bahan</option>
+              <option value="Modal Masuk">Modal Masuk</option>
+              <option value="Biaya Operasional">Biaya Operasional</option>
+              <option value="Produksi Batch">Produksi & Kemas</option>
+            </select>
+          </div>
+          <div id="transactions-ledger" class="divide-y divide-stone-100"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-stone-200 grid grid-cols-5 py-1.5 px-1 shadow-lg">
+      <button onclick="switchTab('dashboard')" data-tab="dashboard" class="mob-tab flex flex-col items-center justify-center py-1 text-stone-900 font-bold">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">Home</span>
+      </button>
+      <button onclick="switchTab('ingredients')" data-tab="ingredients" class="mob-tab flex flex-col items-center justify-center py-1 text-stone-400">
+        <i data-lucide="package" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">Bahan</span>
+      </button>
+      <button onclick="switchTab('formulas')" data-tab="formulas" class="mob-tab flex flex-col items-center justify-center py-1 text-stone-400">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">Formula</span>
+      </button>
+      <button onclick="switchTab('production')" data-tab="production" class="mob-tab flex flex-col items-center justify-center py-1 text-stone-400">
+        <i data-lucide="factory" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">Produksi</span>
+      </button>
+      <button onclick="switchTab('sales')" data-tab="sales" class="mob-tab flex flex-col items-center justify-center py-1 text-stone-400">
+        <i data-lucide="wallet" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5">Jual & Kas</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==================== MODAL: KEMAS DARI JERIGEN KE BOTOL ==================== -->
+  <div id="modal-bottle" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-lg text-stone-900">Kemas dari Jerigen ke Botol</h3>
+        <button onclick="closeModal('modal-bottle')" class="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p id="bottle-modal-subtitle" class="text-xs text-stone-500 mb-4"></p>
+
+      <form id="bottle-form" onsubmit="event.preventDefault();" class="space-y-4">
+        <input type="hidden" id="bottle-batch-id" value="" />
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-semibold text-stone-700">Jumlah Botol yang Dikemas Sekarang</label>
+            <button type="button" onclick="fillMaxBottling()" class="text-[11px] font-semibold text-amber-800 hover:underline">
+              Kemas Semua Sisa Jerigen
+            </button>
+          </div>
+          <input type="number" id="bottle-qty" min="1" required oninput="updateBottlingPreview()"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm font-bold" />
+        </div>
+
+        <div class="rounded-xl bg-stone-50 border border-stone-200 p-3.5 space-y-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-stone-700">Stok Packaging yang Akan Terpotong:</p>
+          <div id="bottle-pkg-list" class="space-y-1.5 text-xs"></div>
+        </div>
+
+        <button type="submit" id="bottle-submit-btn"
+          class="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold text-sm">
+          Konfirmasi Kemas & Potong Packaging
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: TAMBAH / EDIT BAHAN BAKU ==================== -->
+  <div id="modal-ing" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="ing-modal-title" class="font-bold text-lg text-stone-900">Tambah Bahan Baku / Packaging</h3>
+        <button onclick="closeModal('modal-ing')" class="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="ing-form" onsubmit="event.preventDefault();" class="space-y-3.5">
+        <input type="hidden" id="ing-edit-id" value="" />
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Nama Bahan / Item</label>
+          <input type="text" id="ing-name" required placeholder="Contoh: Alkohol Denat / Bibit Baccarat / Botol 30ml"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Kategori</label>
+            <select id="ing-category" onchange="onIngCategoryChange()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm">
+              <option value="Bibit Parfum">Bibit Parfum</option>
+              <option value="Pelarut & Fixative">Pelarut & Fixative</option>
+              <option value="Packaging">Packaging</option>
+            </select>
+          </div>
+          <div id="ing-bj-wrap">
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Berat Jenis / BJ (g/mL)</label>
+            <input type="number" id="ing-bj" step="0.001" min="0.1" value="0.950" oninput="updateIngConversionPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm font-semibold" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Jumlah Stok</label>
+            <input type="number" id="ing-qty" step="any" min="0" value="0" required oninput="updateIngConversionPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Satuan Input</label>
+            <select id="ing-input-unit" onchange="updateIngConversionPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm">
+              <option value="g">gram (g)</option>
+              <option value="kg">kilogram (kg)</option>
+              <option value="ml">mililiter (mL)</option>
+              <option value="L">Liter (L)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Cara Input Harga</label>
+            <select id="ing-price-mode" onchange="updateIngConversionPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm">
+              <option value="total">Total Harga Beli (Rp)</option>
+              <option value="unit">Harga per Satuan Input</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Nominal Harga (Rp)</label>
+            <input type="number" id="ing-price-val" step="any" min="0" value="0" required oninput="updateIngConversionPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+          </div>
+        </div>
+
+        <div id="ing-conv-preview" class="rounded-xl bg-amber-50/90 border border-amber-200 p-3 text-xs text-amber-950 space-y-1"></div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Batas Min. Alert (<span id="ing-min-unit-lbl">gram</span>)</label>
+          <input type="number" id="ing-min" step="any" min="0" value="50" required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        </div>
+
+        <label id="ing-expense-wrap" class="flex items-center gap-2 text-xs text-stone-600 pt-1">
+          <input type="checkbox" id="ing-record-expense" class="rounded border-stone-300 text-amber-700 focus:ring-amber-600" />
+          <span>Catat nilai stok awal ini sebagai pengeluaran kas (Belanja Bahan)</span>
+        </label>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-stone-900 text-white font-semibold text-sm mt-2">
+          Simpan Item
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: RESTOCK BAHAN ==================== -->
+  <div id="modal-restock" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-lg text-stone-900">Restock Belanja Bahan</h3>
+        <button onclick="closeModal('modal-restock')" class="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="restock-form" onsubmit="event.preventDefault();" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Pilih Bahan / Packaging</label>
+          <select id="restock-ing-id" required onchange="onRestockItemChange()"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm"></select>
+        </div>
+        <p id="restock-bj-info" class="text-[11px] text-stone-500 bg-stone-50 px-3 py-1.5 rounded-lg border border-stone-200/70"></p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Jumlah Beli Baru</label>
+            <input type="number" id="restock-qty" step="any" min="0.001" required placeholder="5" oninput="updateRestockPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Satuan Beli</label>
+            <select id="restock-unit" onchange="updateRestockPreview()"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm">
+              <option value="g">gram (g)</option>
+              <option value="kg">kilogram (kg)</option>
+              <option value="ml">mililiter (mL)</option>
+              <option value="L">Liter (L)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Total Harga Beli (Rp)</label>
+          <input type="number" id="restock-total-cost" min="0" required placeholder="200000" oninput="updateRestockPreview()"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        </div>
+        <div id="restock-conv-preview" class="rounded-xl bg-amber-50/90 border border-amber-200 p-3 text-xs text-amber-950"></div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-semibold text-sm">
+          Konfirmasi Restock
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: BUAT / EDIT FORMULA ==================== -->
+  <div id="modal-formula" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="formula-modal-title" class="font-bold text-lg text-stone-900">Racik Formula Parfum Baru</h3>
+        <button onclick="closeModal('modal-formula')" class="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formula-form" onsubmit="event.preventDefault();" class="space-y-4">
+        <input type="hidden" id="f-edit-id" value="" />
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Nama Varian</label>
+            <input type="text" id="f-name" required placeholder="Velvet Rouge EDP"
+              class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Volume Botol (mL)</label>
+            <input type="number" id="f-size" min="1" step="any" value="30" required oninput="recalcFormulaHPP()"
+              class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Target Harga Jual (Rp)</label>
+            <input type="number" id="f-price" min="0" value="89000" required oninput="recalcFormulaHPP()"
+              class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Notes Aroma (Opsional)</label>
+          <input type="text" id="f-notes" placeholder="Top: Saffron, Jasmine | Base: Amberwood, Cedar"
+            class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm" />
+        </div>
+
+        <div class="border border-stone-200 rounded-2xl p-3.5 bg-stone-50/70 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-800">1. Komposisi Cairan (% Berat / w/w)</span>
+              <span id="f-pct-badge" class="ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">0%</span>
+            </div>
+            <div class="flex gap-1.5">
+              <button type="button" onclick="autoFillSolvent()" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 text-[11px] font-semibold hover:bg-amber-200">
+                Auto-Isi Sisa Pelarut
+              </button>
+              <button type="button" onclick="addLiquidRow()" class="px-2.5 py-1 rounded-lg bg-stone-900 text-white text-[11px] font-semibold">
+                + Bahan
+              </button>
+            </div>
+          </div>
+          <div id="f-liquid-rows" class="space-y-2"></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-200/70 text-[11px] text-stone-600">
+            <span>BJ Campuran Formula: <strong id="f-mix-bj" class="text-stone-900">-</strong></span>
+            <span>Berat Isi Bersih / Botol: <strong id="f-net-weight" class="text-amber-900">0 gram</strong></span>
+          </div>
+        </div>
+
+        <div class="border border-stone-200 rounded-2xl p-3.5 bg-stone-50/70 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-stone-800">2. Packaging per 1 Botol</span>
+            <button type="button" onclick="addPackagingRow()" class="px-2.5 py-1 rounded-lg bg-stone-900 text-white text-[11px] font-semibold">
+              + Kemasan
+            </button>
+          </div>
+          <div id="f-pkg-rows" class="space-y-2"></div>
+        </div>
+
+        <div class="border border-blue-200/80 rounded-2xl p-3.5 bg-blue-50/40 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-800">3. Alokasi Biaya Operasional / Botol (Rp)</span>
+              <p class="text-[11px] text-stone-500">Otomatis masuk ke total Biaya Operasional setiap ada produk terjual.</p>
+            </div>
+            <button type="button" onclick="toggleOpexHelper()" class="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-900 text-[11px] font-semibold shrink-0">
+              Bantu Hitung
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-stone-600">Rp</span>
+            <input type="number" id="f-overhead" min="0" value="2500" oninput="recalcFormulaHPP()"
+              class="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm font-semibold" />
+            <span class="text-xs text-stone-500 shrink-0">/ botol</span>
+          </div>
+
+          <div id="opex-calc-box" class="hidden pt-2 border-t border-blue-200/70 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+            <div>
+              <label class="block text-[10px] font-semibold text-stone-600 mb-0.5">Estimasi Ops Bulanan (Rp)</label>
+              <input type="number" id="opex-monthly-est" placeholder="500000" oninput="applyOpexEstimate()"
+                class="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-stone-600 mb-0.5">Target Produksi / Bulan (btl)</label>
+              <input type="number" id="opex-monthly-qty" placeholder="200" oninput="applyOpexEstimate()"
+                class="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-white text-xs" />
+            </div>
+            <p class="text-[11px] text-blue-900 pb-1">Otomatis membagi biaya bulanan ke tiap botol.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-stone-900 text-white p-4 space-y-3">
+          <div class="grid grid-cols-3 gap-2 text-center pb-3 border-b border-stone-800 text-xs">
+            <div>
+              <p class="text-[10px] text-stone-400">Bahan Cair (BJ)</p>
+              <p id="f-preview-liq" class="font-semibold text-stone-200 mt-0.5">Rp 0</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-stone-400">Kemasan</p>
+              <p id="f-preview-pkg" class="font-semibold text-stone-200 mt-0.5">Rp 0</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-stone-400">Operasional</p>
+              <p id="f-preview-ovh" class="font-semibold text-blue-300 mt-0.5">Rp 0</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p class="text-[11px] text-stone-400">Total HPP / Botol</p>
+              <p id="f-preview-hpp" class="text-base sm:text-lg font-bold text-amber-300 mt-0.5">Rp 0</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-stone-400">Keuntungan / Botol</p>
+              <p id="f-preview-profit" class="text-base sm:text-lg font-bold text-emerald-400 mt-0.5">Rp 0</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-stone-400">Margin Profit</p>
+              <p id="f-preview-margin" class="text-base sm:text-lg font-bold text-white mt-0.5">0%</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-sm">
+          Simpan Formula Parfum
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ==================== KONFIGURASI SUPABASE ====================
+    const SUPABASE_URL = 'https://slyzxpujhqfxdqbpuvvf.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_weCgg8TQkt4Nlhr7dFq0rw_3iYsVZWy';
+    let sb = null;
+
+    function getSupabaseClient() {
+      if (sb) return sb;
+      if (!window.supabase || !window.supabase.createClient) {
+        return null;
+      }
+      let storageOption = undefined;
+      try {
+        const testKey = '__sb_test__';
+        window.localStorage.setItem(testKey, '1');
+        window.localStorage.removeItem(testKey);
+      } catch (e) {
+        const memStore = {};
+        storageOption = {
+          getItem: (k) => memStore[k] || null,
+          setItem: (k, v) => { memStore[k] = v; },
+          removeItem: (k) => { delete memStore[k]; }
+        };
+      }
+      sb = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        storageOption ? { auth: { storage: storageOption } } : {}
+      );
+      return sb;
+    }
+
+    sb = getSupabaseClient();
+
+    // ==================== STATE APLIKASI ====================
+    let state = {
+      user: null,
+      ingredients: [],
+      formulas: [],
+      batches: [],
+      finishedGoods: [],
+      transactions: [],
+      ingFilter: 'ALL'
+    };
+
+    // ==================== HELPER FORMAT & KONVERSI BJ ====================
+    const rp = (num) => 'Rp ' + Math.round(Number(num) || 0).toLocaleString('id-ID');
+    const fmtNum = (num, maxDec = 2) => {
+      const n = Number(num) || 0;
+      return Number.isInteger(n)
+        ? n.toLocaleString('id-ID')
+        : n.toLocaleString('id-ID', { maximumFractionDigits: maxDec });
+    };
+    const esc = (str) => String(str ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    const todayISO = () => new Date().toISOString().split('T')[0];
+    const addDaysISO = (dateStr, days) => {
+      const d = new Date(dateStr || todayISO());
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    };
+    const refreshIcons = () => { if (window.lucide) window.lucide.createIcons(); };
+
+    const getIngBJ = (ing) => {
+      const bj = Number(ing?.bj);
+      return bj > 0 ? bj : 1;
+    };
+
+    function getNormalizedIng(ing) {
+      if (!ing) return { stockBase: 0, costPerBase: 0, baseUnit: 'g', bj: 1 };
+      if (ing.category === 'Packaging' || ing.unit === 'pcs') {
+        return {
+          stockBase: Number(ing.stock) || 0,
+          costPerBase: Number(ing.cost_per_unit) || 0,
+          baseUnit: 'pcs',
+          bj: 1
+        };
+      }
+      const bj = getIngBJ(ing);
+      if (ing.unit === 'ml') {
+        return {
+          stockBase: (Number(ing.stock) || 0) * bj,
+          costPerBase: (Number(ing.cost_per_unit) || 0) / bj,
+          baseUnit: 'g',
+          bj
+        };
+      }
+      return {
+        stockBase: Number(ing.stock) || 0,
+        costPerBase: Number(ing.cost_per_unit) || 0,
+        baseUnit: 'g',
+        bj
+      };
+    }
+
+    function convertInputToBase(qty, inputUnit, bj) {
+      const q = Number(qty) || 0;
+      const density = Number(bj) > 0 ? Number(bj) : 1;
+      if (inputUnit === 'pcs' || inputUnit === 'g') return q;
+      if (inputUnit === 'kg') return q * 1000;
+      if (inputUnit === 'ml') return q * density;
+      if (inputUnit === 'L') return q * 1000 * density;
+      return q;
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors = type === 'error'
+        ? 'bg-rose-900 text-white border-rose-700'
+        : 'bg-stone-900 text-white border-stone-700';
+      el.className = `${colors} border px-4 py-3 rounded-2xl shadow-lg text-xs sm:text-sm font-medium pointer-events-auto transition-all`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3400);
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      refreshIcons();
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        const active = btn.dataset.tab === tabName;
+        btn.className = active
+          ? 'nav-tab px-4 py-3 text-sm font-semibold border-b-2 border-stone-900 text-stone-900 flex items-center gap-2'
+          : 'nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2';
+      });
+
+      document.querySelectorAll('.mob-tab').forEach(btn => {
+        const active = btn.dataset.tab === tabName;
+        btn.className = active
+          ? 'mob-tab flex flex-col items-center justify-center py-1 text-stone-900 font-bold'
+          : 'mob-tab flex flex-col items-center justify-center py-1 text-stone-400';
+      });
+      refreshIcons();
+    }
+
+    // ==================== AUTHENTICATION ====================
+    async function initAuth() {
+      const client = getSupabaseClient();
+      if (!client) {
+        const errBox = document.getElementById('login-error');
+        errBox.textContent = 'Gagal memuat sistem Supabase (koneksi lambat/terblokir). Muat ulang halaman atau buka lewat Google Chrome.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        handleSession(session);
+        client.auth.onAuthStateChange((_event, session) => handleSession(session));
+      } catch (err) {
+        console.error('Auth init error:', err);
+      }
+    }
+
+    function handleSession(session) {
+      if (session?.user) {
+        state.user = session.user;
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+        document.getElementById('active-user-email').textContent = session.user.email;
+        setDefaultDates();
+        loadAllData();
+      } else {
+        state.user = null;
+        document.getElementById('app-shell').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+      }
+      refreshIcons();
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errBox = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+
+      errBox.classList.add('hidden');
+      const client = getSupabaseClient();
+      if (!client) {
+        errBox.textContent = 'Library Supabase belum siap karena jaringan lambat. Silakan refresh halaman lalu coba lagi.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Memeriksa akun...</span>';
+
+      try {
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (error) {
+          errBox.textContent = error.message.includes('Invalid login credentials')
+            ? 'Email atau password salah. Pastikan akun sudah dibuat di Authentication → Users Supabase.'
+            : error.message;
+          errBox.classList.remove('hidden');
+        } else if (data?.session) {
+          handleSession(data.session);
+        } else {
+          errBox.textContent = 'Login berhasil tetapi sesi tidak tersimpan oleh browser ini. Buka link web ini di Google Chrome / Safari.';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errBox.textContent = 'Gagal terhubung ke server: ' + (err?.message || 'Periksa sinyal internet');
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Masuk ke Sistem</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
+        refreshIcons();
+      }
+    });
+
+    async function handleLogout() {
+      const client = getSupabaseClient();
+      if (client) await client.auth.signOut();
+      showToast('Berhasil keluar dari sistem');
+    }
+
+    function setDefaultDates() {
+      const today = todayISO();
+      document.getElementById('prod-date').value = today;
+      document.getElementById('prod-maceration-end').value = addDaysISO(today, 14);
+      document.getElementById('prod-code').value = 'BCH-' + today.replace(/-/g, '').slice(2) + '-01';
+      document.getElementById('sale-date').value = today;
+      document.getElementById('cf-date').value = today;
+    }
+
+    // ==================== LOAD ALL DATA ====================
+    async function loadAllData(notify = false) {
+      const [ingRes, formRes, batchRes, fgRes, txRes] = await Promise.all([
+        sb.from('ingredients').select('*').order('category').order('name'),
+        sb.from('formulas').select('*').order('created_at', { ascending: false }),
+        sb.from('batches').select('*').order('created_at', { ascending: false }),
+        sb.from('finished_goods').select('*').order('variant_name'),
+        sb.from('transactions').select('*').order('tx_date', { ascending: false }).order('created_at', { ascending: false })
+      ]);
+
+      if (ingRes.error || formRes.error || batchRes.error || fgRes.error || txRes.error) {
+        showToast('Gagal memuat data dari Supabase', 'error');
+        return;
+      }
+
+      state.ingredients = ingRes.data || [];
+      state.formulas = formRes.data || [];
+      state.batches = batchRes.data || [];
+      state.finishedGoods = fgRes.data || [];
+      state.transactions = txRes.data || [];
+
+      const isEmpty = state.ingredients.length === 0 && state.formulas.length === 0 && state.transactions.length === 0;
+      document.getElementById('empty-seed-banner').classList.toggle('hidden', !isEmpty);
+
+      renderAll();
+      if (notify) showToast('Data berhasil disinkronkan');
+    }
+
+    function renderAll() {
+      renderDashboard();
+      renderIngredients();
+      renderFormulas();
+      renderProduction();
+      renderSalesAndCashflow();
+      refreshIcons();
+    }
+
+    // ==================== KALKULASI HPP FORMULA BERBASIS BJ & OPERASIONAL ====================
+    function calculateFormulaMetrics(formula) {
+      const bottleVolumeMl = Number(formula.bottle_size_ml) || 0;
+      const liquidItems = formula.liquid_items || [];
+      const packagingItems = formula.packaging_items || [];
+      const overheadCost = Number(formula.overhead_cost) || 0;
+
+      let invDensitySum = 0;
+      let totalPct = 0;
+      liquidItems.forEach(item => {
+        const pct = Number(item.percentage) || 0;
+        const ing = state.ingredients.find(i => i.id === item.ingredient_id);
+        const bj = getIngBJ(ing);
+        if (pct > 0) {
+          invDensitySum += (pct / 100) / bj;
+          totalPct += pct;
+        }
+      });
+
+      const mixBJ = (invDensitySum > 0 && totalPct > 0) ? (totalPct / 100) / invDensitySum : 1;
+      const netWeightGrams = bottleVolumeMl * mixBJ;
+
+      let liquidCost = 0;
+      liquidItems.forEach(item => {
+        const ing = state.ingredients.find(i => i.id === item.ingredient_id);
+        if (ing) {
+          const norm = getNormalizedIng(ing);
+          const gramsPerBottle = (Number(item.percentage) / 100) * netWeightGrams;
+          liquidCost += gramsPerBottle * norm.costPerBase;
+        }
+      });
+
+      let pkgCost = 0;
+      packagingItems.forEach(item => {
+        const ing = state.ingredients.find(i => i.id === item.ingredient_id);
+        if (ing) {
+          const norm = getNormalizedIng(ing);
+          pkgCost += (Number(item.qty_per_bottle) || 0) * norm.costPerBase;
+        }
+      });
+
+      const baseCogs = liquidCost + pkgCost;
+      const totalHpp = baseCogs + overheadCost;
+      const sellingPrice = Number(formula.selling_price) || 0;
+      const profit = sellingPrice - totalHpp;
+      const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+
+      return { mixBJ, netWeightGrams, liquidCost, pkgCost, baseCogs, overheadCost, totalHpp, profit, margin };
+    }
+
+    function getBatchStats(b) {
+      const produced = Number(b.qty_produced) || 0;
+      const isLegacyReady = b.status === 'Siap Jual' && (Number(b.bottled_qty) || 0) === 0;
+      const bottled = isLegacyReady ? produced : (Number(b.bottled_qty) || 0);
+      const sold = Number(b.sold_qty) || 0;
+      const remainingBulk = Math.max(0, produced - bottled);
+      const remainingBottled = Math.max(0, bottled - sold);
+      const formula = state.formulas.find(f => f.id === b.formula_id);
+      const metrics = formula ? calculateFormulaMetrics(formula) : null;
+      const unitWeightG = metrics ? metrics.netWeightGrams : (produced > 0 && Number(b.net_weight_g) > 0 ? Number(b.net_weight_g) / produced : 0);
+      const remainingBulkGrams = remainingBulk * unitWeightG;
+
+      return { produced, bottled, sold, remainingBulk, remainingBottled, unitWeightG, remainingBulkGrams, formula, metrics };
+    }
+
+    // ==================== RENDER DASHBOARD ====================
+    function renderDashboard() {
+      let cashBalance = 0;
+      let capitalIn = 0;
+      let revenue = 0;
+      let totalHppSold = 0;
+      let allocatedOpexSold = 0;
+      let manualOpex = 0;
+      let unitsSold = 0;
+
+      state.transactions.forEach(tx => {
+        const net = Number(tx.net_amount) || 0;
+        cashBalance += net;
+        if (tx.tx_type === 'Modal Masuk') capitalIn += net;
+        if (tx.tx_type === 'Penjualan') {
+          revenue += net;
+          totalHppSold += Number(tx.total_hpp) || 0;
+          allocatedOpexSold += Number(tx.overhead_amount) || 0;
+          unitsSold += Number(tx.qty) || 0;
+        }
+        if (tx.tx_type === 'Biaya Operasional') {
+          manualOpex += Math.abs(net);
+        }
+      });
+
+      const baseCogsSold = Math.max(0, totalHppSold - allocatedOpexSold);
+      const totalOpex = allocatedOpexSold + manualOpex;
+      const netProfit = revenue - baseCogsSold - totalOpex;
+
+      document.getElementById('kpi-cash').textContent = rp(cashBalance);
+      document.getElementById('kpi-profit').textContent = rp(netProfit);
+      document.getElementById('kpi-profit').className = `text-xl sm:text-2xl font-bold mt-2 ${netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`;
+      document.getElementById('kpi-revenue').textContent = rp(revenue);
+      document.getElementById('kpi-units-sold').textContent = `${fmtNum(unitsSold)} botol terjual`;
+      document.getElementById('kpi-opex').textContent = rp(totalOpex);
+      document.getElementById('kpi-opex-sub').textContent = `Botol: ${rp(allocatedOpexSold)} • Ekstra: ${rp(manualOpex)}`;
+      document.getElementById('kpi-cogs').textContent = rp(baseCogsSold);
+      document.getElementById('kpi-capital').textContent = rp(capitalIn);
+
+      const fgBox = document.getElementById('dash-finished-goods');
+      if (state.finishedGoods.length === 0) {
+        fgBox.innerHTML = `<p class="text-xs text-stone-400 py-3 text-center">Belum ada stok parfum siap jual.</p>`;
+      } else {
+        fgBox.innerHTML = state.finishedGoods.map(fg => `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-100">
+            <div>
+              <p class="font-semibold text-sm text-stone-900">${esc(fg.variant_name)} <span class="text-xs font-normal text-stone-500">(${fg.bottle_size_ml}ml)</span></p>
+              <p class="text-[11px] text-stone-500">HPP: ${rp(fg.unit_hpp)} (Ops: ${rp(fg.unit_overhead)}) • Jual: ${rp(fg.selling_price)}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold ${fg.stock > 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+              ${fg.stock} pcs
+            </span>
+          </div>
+        `).join('');
+      }
+
+      const bulkBox = document.getElementById('dash-bulk-summary');
+      const activeBulks = state.batches.map(b => ({ b, s: getBatchStats(b) })).filter(x => x.s.remainingBulk > 0);
+      if (activeBulks.length === 0) {
+        bulkBox.innerHTML = `<p class="text-[11px] text-stone-400">Tidak ada stok cairan tersimpan di jerigen.</p>`;
+      } else {
+        bulkBox.innerHTML = `
+          <p class="text-[11px] font-bold uppercase tracking-wider text-amber-900 mb-2">Stok Maserasi di Jerigen (Belum Dikemas):</p>
+          <div class="space-y-1.5">
+            ${activeBulks.map(({ b, s }) => `
+              <div class="flex items-center justify-between text-xs bg-amber-50/70 border border-amber-200/70 px-3 py-2 rounded-xl">
+                <span class="font-medium text-stone-800">${esc(b.variant_name)} <span class="text-[10px] text-stone-500">(${esc(b.batch_code)})</span></span>
+                <span class="font-bold text-amber-900">${s.remainingBulk} btl <span class="font-normal text-stone-500">(${fmtNum(s.remainingBulkGrams)} g)</span></span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      const lowItems = state.ingredients.filter(i => {
+        const norm = getNormalizedIng(i);
+        return norm.stockBase <= Number(i.min_stock);
+      });
+      const lowBox = document.getElementById('dash-low-stock');
+      if (lowItems.length === 0) {
+        lowBox.innerHTML = `<p class="text-xs text-emerald-700 bg-emerald-50 rounded-xl p-3 text-center font-medium">Semua stok bahan baku & packaging dalam batas aman.</p>`;
+      } else {
+        lowBox.innerHTML = lowItems.map(item => {
+          const norm = getNormalizedIng(item);
+          return `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-amber-50/80 border border-amber-200/80">
+              <div>
+                <p class="font-semibold text-sm text-stone-900">${esc(item.name)}</p>
+                <p class="text-[11px] text-amber-900">Batas min: ${fmtNum(item.min_stock)} ${norm.baseUnit}</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                Sisa ${fmtNum(norm.stockBase)} ${norm.baseUnit}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const recentBox = document.getElementById('dash-recent-tx');
+      const recent = state.transactions.slice(0, 6);
+      if (recent.length === 0) {
+        recentBox.innerHTML = `<p class="text-xs text-stone-400 py-4 text-center">Belum ada transaksi tercatat.</p>`;
+      } else {
+        recentBox.innerHTML = recent.map(tx => renderTxRow(tx, false)).join('');
+      }
+    }
+
+    // ==================== RENDER & AKSI BAHAN BAKU ====================
+    function filterIngredients(cat) {
+      state.ingFilter = cat;
+      document.querySelectorAll('.ing-filter-btn').forEach(btn => {
+        const active = btn.dataset.cat === cat;
+        btn.className = active
+          ? 'ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-stone-900 text-white shrink-0'
+          : 'ing-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-stone-200 text-stone-600 shrink-0';
+      });
+      renderIngredients();
+    }
+
+    function renderIngredients() {
+      const list = state.ingFilter === 'ALL'
+        ? state.ingredients
+        : state.ingredients.filter(i => i.category === state.ingFilter);
+
+      const container = document.getElementById('ingredients-list');
+      if (list.length === 0) {
+        container.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-stone-200 p-8 text-center text-sm text-stone-400">Belum ada item di kategori ini.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(item => {
+        const norm = getNormalizedIng(item);
+        const isLow = norm.stockBase <= Number(item.min_stock);
+        const isLiquid = norm.baseUnit === 'g';
+        const eqMl = isLiquid ? norm.stockBase / norm.bj : 0;
+
+        return `
+          <div class="bg-white rounded-2xl border ${isLow ? 'border-amber-300' : 'border-stone-200/80'} p-4 shadow-sm flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-700">${esc(item.category)}</span>
+                  ${isLiquid ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200/70">BJ: ${fmtNum(norm.bj, 3)} g/mL</span>` : ''}
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="openIngredientModal('${item.id}')" class="p-1 text-stone-400 hover:text-stone-900 transition" title="Edit Bahan & BJ">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button onclick="deleteIngredient('${item.id}')" class="p-1 text-stone-300 hover:text-rose-600 transition" title="Hapus">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+              <h3 class="font-bold text-stone-900 text-base mt-2">${esc(item.name)}</h3>
+              <p class="text-xs text-stone-500 mt-0.5">
+                Modal: <strong class="text-stone-800">${rp(norm.costPerBase)}</strong> / ${norm.baseUnit}
+                ${isLiquid ? `<span class="text-stone-400">(${rp(norm.costPerBase * norm.bj)}/mL)</span>` : ''}
+              </p>
+            </div>
+
+            <div class="pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div>
+                <p class="text-[10px] uppercase tracking-wider text-stone-400">Sisa Stok</p>
+                <p class="text-lg font-bold ${isLow ? 'text-rose-600' : 'text-stone-900'}">
+                  ${fmtNum(norm.stockBase)} <span class="text-xs font-medium">${norm.baseUnit}</span>
+                </p>
+                ${isLiquid ? `<p class="text-[11px] text-stone-400">≈ ${fmtNum(eqMl)} mL (${fmtNum(eqMl / 1000, 2)} L)</p>` : ''}
+              </div>
+              <button onclick="openRestockModal('${item.id}')"
+                class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition">
+                + Restock
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      refreshIcons();
+    }
+
+    function onIngCategoryChange() {
+      const cat = document.getElementById('ing-category').value;
+      const bjWrap = document.getElementById('ing-bj-wrap');
+      const bjInput = document.getElementById('ing-bj');
+      const unitSel = document.getElementById('ing-input-unit');
+      const minLbl = document.getElementById('ing-min-unit-lbl');
+
+      if (cat === 'Packaging') {
+        bjWrap.classList.add('opacity-40', 'pointer-events-none');
+        bjInput.value = '1';
+        unitSel.innerHTML = `<option value="pcs">pcs</option>`;
+        minLbl.textContent = 'pcs';
+      } else {
+        bjWrap.classList.remove('opacity-40', 'pointer-events-none');
+        if (!document.getElementById('ing-edit-id').value) {
+          bjInput.value = cat === 'Pelarut & Fixative' ? '0.805' : '0.950';
+        }
+        unitSel.innerHTML = `
+          <option value="g">gram (g)</option>
+          <option value="kg">kilogram (kg)</option>
+          <option value="ml">mililiter (mL)</option>
+          <option value="L">Liter (L)</option>
+        `;
+        minLbl.textContent = 'gram';
+      }
+      updateIngConversionPreview();
+    }
+
+    function updateIngConversionPreview() {
+      const cat = document.getElementById('ing-category').value;
+      const bj = Number(document.getElementById('ing-bj').value) || 1;
+      const qty = Number(document.getElementById('ing-qty').value) || 0;
+      const unit = document.getElementById('ing-input-unit').value;
+      const priceMode = document.getElementById('ing-price-mode').value;
+      const priceVal = Number(document.getElementById('ing-price-val').value) || 0;
+      const box = document.getElementById('ing-conv-preview');
+
+      if (cat === 'Packaging') {
+        const totalCost = priceMode === 'total' ? priceVal : priceVal * qty;
+        const unitCost = qty > 0 ? totalCost / qty : (priceMode === 'unit' ? priceVal : 0);
+        box.innerHTML = `Tersimpan sebagai <strong>${fmtNum(qty)} pcs</strong> • Modal: <strong>${rp(unitCost)} / pcs</strong>`;
+        return;
+      }
+
+      const grams = convertInputToBase(qty, unit, bj);
+      const totalCost = priceMode === 'total' ? priceVal : priceVal * qty;
+      const costPerGram = grams > 0 ? totalCost / grams : (priceMode === 'unit' && unit === 'g' ? priceVal : 0);
+      const eqMl = bj > 0 ? grams / bj : 0;
+
+      box.innerHTML = `
+        <div>Konversi Massa: <strong>${fmtNum(qty)} ${unit}</strong> × BJ <strong>${fmtNum(bj, 3)}</strong> = <strong>${fmtNum(grams)} gram</strong> <span class="text-amber-800">(≈ ${fmtNum(eqMl)} mL)</span></div>
+        <div>Harga Modal Dasar: <strong>${rp(costPerGram)} / gram</strong> <span class="text-amber-800">(Total: ${rp(totalCost)})</span></div>
+      `;
+    }
+
+    function openIngredientModal(editId = '') {
+      document.getElementById('ing-form').reset();
+      document.getElementById('ing-edit-id').value = editId;
+      const expWrap = document.getElementById('ing-expense-wrap');
+
+      if (editId) {
+        const ing = state.ingredients.find(i => i.id === editId);
+        if (!ing) return;
+        const norm = getNormalizedIng(ing);
+        document.getElementById('ing-modal-title').textContent = 'Edit Bahan Baku & Berat Jenis';
+        document.getElementById('ing-name').value = ing.name;
+        document.getElementById('ing-category').value = ing.category;
+        onIngCategoryChange();
+        document.getElementById('ing-bj').value = norm.bj;
+        document.getElementById('ing-input-unit').value = norm.baseUnit;
+        document.getElementById('ing-qty').value = +norm.stockBase.toFixed(4);
+        document.getElementById('ing-price-mode').value = 'unit';
+        document.getElementById('ing-price-val').value = +norm.costPerBase.toFixed(4);
+        document.getElementById('ing-min').value = ing.min_stock;
+        expWrap.classList.add('hidden');
+      } else {
+        document.getElementById('ing-modal-title').textContent = 'Tambah Bahan Baku / Packaging';
+        onIngCategoryChange();
+        expWrap.classList.remove('hidden');
+      }
+      updateIngConversionPreview();
+      openModal('modal-ing');
+    }
+
+    document.getElementById('ing-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('ing-edit-id').value;
+      const name = document.getElementById('ing-name').value.trim();
+      const category = document.getElementById('ing-category').value;
+      const bj = category === 'Packaging' ? 1 : (Number(document.getElementById('ing-bj').value) || 1);
+      const qty = Number(document.getElementById('ing-qty').value) || 0;
+      const unit = document.getElementById('ing-input-unit').value;
+      const priceMode = document.getElementById('ing-price-mode').value;
+      const priceVal = Number(document.getElementById('ing-price-val').value) || 0;
+      const min_stock = Number(document.getElementById('ing-min').value) || 0;
+      const recordExpense = document.getElementById('ing-record-expense').checked;
+
+      const baseUnit = category === 'Packaging' ? 'pcs' : 'g';
+      const stockBase = convertInputToBase(qty, unit, bj);
+      const totalCost = priceMode === 'total' ? priceVal : priceVal * qty;
+      const costPerBase = stockBase > 0 ? totalCost / stockBase : (priceMode === 'unit' && unit === baseUnit ? priceVal : 0);
+
+      const payload = {
+        name,
+        category,
+        unit: baseUnit,
+        stock: +stockBase.toFixed(4),
+        cost_per_unit: +costPerBase.toFixed(4),
+        min_stock,
+        bj
+      };
+
+      let error;
+      if (editId) {
+        ({ error } = await sb.from('ingredients').update(payload).eq('id', editId));
+      } else {
+        ({ error } = await sb.from('ingredients').insert([payload]));
+      }
+
+      if (error) return showToast('Gagal menyimpan: ' + error.message, 'error');
+
+      if (!editId && recordExpense && totalCost > 0) {
+        await sb.from('transactions').insert([{
+          tx_date: todayISO(),
+          tx_type: 'Belanja Bahan',
+          description: `Belanja stok awal: ${name} (${fmtNum(stockBase)} ${baseUnit})`,
+          net_amount: -totalCost
+        }]);
+      }
+
+      closeModal('modal-ing');
+      showToast(editId ? 'Data bahan diperbarui' : 'Item bahan baku ditambahkan');
+      loadAllData();
+    });
+
+    function openRestockModal(preselectId = '') {
+      const sel = document.getElementById('restock-ing-id');
+      sel.innerHTML = state.ingredients.map(i => {
+        const norm = getNormalizedIng(i);
+        return `<option value="${i.id}" ${i.id === preselectId ? 'selected' : ''}>${esc(i.name)} (Sisa: ${fmtNum(norm.stockBase)} ${norm.baseUnit})</option>`;
+      }).join('');
+      document.getElementById('restock-qty').value = '';
+      document.getElementById('restock-total-cost').value = '';
+      onRestockItemChange();
+      openModal('modal-restock');
+    }
+
+    function onRestockItemChange() {
+      const id = document.getElementById('restock-ing-id').value;
+      const ing = state.ingredients.find(i => i.id === id);
+      const unitSel = document.getElementById('restock-unit');
+      const info = document.getElementById('restock-bj-info');
+      if (!ing) return;
+
+      const norm = getNormalizedIng(ing);
+      if (norm.baseUnit === 'pcs') {
+        unitSel.innerHTML = `<option value="pcs">pcs</option>`;
+        info.textContent = `Kategori Packaging • Modal saat ini: ${rp(norm.costPerBase)} / pcs`;
+      } else {
+        unitSel.innerHTML = `
+          <option value="L">Liter (L)</option>
+          <option value="ml">mililiter (mL)</option>
+          <option value="g">gram (g)</option>
+          <option value="kg">kilogram (kg)</option>
+        `;
+        info.textContent = `Berat Jenis (BJ): ${fmtNum(norm.bj, 3)} g/mL • Modal saat ini: ${rp(norm.costPerBase)} / gram`;
+      }
+      updateRestockPreview();
+    }
+
+    function updateRestockPreview() {
+      const id = document.getElementById('restock-ing-id').value;
+      const ing = state.ingredients.find(i => i.id === id);
+      const box = document.getElementById('restock-conv-preview');
+      if (!ing) return;
+
+      const norm = getNormalizedIng(ing);
+      const qty = Number(document.getElementById('restock-qty').value) || 0;
+      const unit = document.getElementById('restock-unit').value;
+      const totalCost = Number(document.getElementById('restock-total-cost').value) || 0;
+
+      const addedBase = convertInputToBase(qty, unit, norm.bj);
+      const newStock = norm.stockBase + addedBase;
+      const newAvgCost = newStock > 0 ? ((norm.stockBase * norm.costPerBase) + totalCost) / newStock : norm.costPerBase;
+
+      box.innerHTML = `
+        <div>Tambahan Stok: <strong>+${fmtNum(addedBase)} ${norm.baseUnit}</strong> (Total jadi ${fmtNum(newStock)} ${norm.baseUnit})</div>
+        <div>Harga Modal Rata-rata Baru: <strong>${rp(newAvgCost)} / ${norm.baseUnit}</strong></div>
+      `;
+    }
+
+    document.getElementById('restock-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('restock-ing-id').value;
+      const qty = Number(document.getElementById('restock-qty').value) || 0;
+      const unit = document.getElementById('restock-unit').value;
+      const totalCost = Number(document.getElementById('restock-total-cost').value) || 0;
+      const ing = state.ingredients.find(i => i.id === id);
+      if (!ing || qty <= 0) return;
+
+      const norm = getNormalizedIng(ing);
+      const addBase = convertInputToBase(qty, unit, norm.bj);
+      const newStock = norm.stockBase + addBase;
+      const newAvgCost = newStock > 0 ? ((norm.stockBase * norm.costPerBase) + totalCost) / newStock : norm.costPerBase;
+
+      const { error } = await sb.from('ingredients')
+        .update({
+          unit: norm.baseUnit,
+          stock: +newStock.toFixed(4),
+          cost_per_unit: +newAvgCost.toFixed(4)
+        })
+        .eq('id', id);
+
+      if (error) return showToast('Gagal restock: ' + error.message, 'error');
+
+      if (totalCost > 0) {
+        await sb.from('transactions').insert([{
+          tx_date: todayISO(),
+          tx_type: 'Belanja Bahan',
+          description: `Restock ${ing.name} (${fmtNum(qty)} ${unit} = +${fmtNum(addBase)} ${norm.baseUnit})`,
+          net_amount: -totalCost
+        }]);
+      }
+
+      closeModal('modal-restock');
+      showToast(`Stok ${ing.name} bertambah +${fmtNum(addBase)} ${norm.baseUnit}`);
+      loadAllData();
+    });
+
+    async function deleteIngredient(id) {
+      if (!confirm('Hapus item bahan ini?')) return;
+      const { error } = await sb.from('ingredients').delete().eq('id', id);
+      if (error) return showToast('Gagal menghapus: ' + error.message, 'error');
+      showToast('Item dihapus');
+      loadAllData();
+    }
+
+    // ==================== RENDER & AKSI FORMULA ====================
+    function renderFormulas() {
+      const container = document.getElementById('formulas-list');
+      if (state.formulas.length === 0) {
+        container.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-stone-200 p-8 text-center text-sm text-stone-400">Belum ada formula parfum. Klik "Buat Formula Baru" untuk meracik.</div>`;
+        return;
+      }
+
+      container.innerHTML = state.formulas.map(f => {
+        const m = calculateFormulaMetrics(f);
+        const liquidSummary = (f.liquid_items || []).map(li => {
+          const ing = state.ingredients.find(i => i.id === li.ingredient_id);
+          return ing ? `${esc(ing.name)} (${li.percentage}%)` : '';
+        }).filter(Boolean).join(' • ');
+
+        return `
+          <div class="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm flex flex-col justify-between gap-4">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">${f.bottle_size_ml} mL</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-700">Netto: ${fmtNum(m.netWeightGrams)} g (BJ ${fmtNum(m.mixBJ, 3)})</span>
+                  </div>
+                  <h3 class="font-serif-brand text-2xl font-bold text-stone-900 mt-1.5">${esc(f.name)}</h3>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="openFormulaModal('${f.id}')" class="p-1.5 text-stone-400 hover:text-stone-900 transition" title="Edit Formula & Operasional">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="deleteFormula('${f.id}')" class="p-1.5 text-stone-300 hover:text-rose-600 transition" title="Hapus">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+              ${f.notes ? `<p class="text-xs italic text-stone-500 mt-1">${esc(f.notes)}</p>` : ''}
+              <p class="text-xs text-stone-600 mt-3 leading-relaxed bg-stone-50 p-2.5 rounded-xl">${liquidSummary || 'Komposisi belum lengkap'}</p>
+
+              <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-stone-500">
+                <span>Bahan Cair: <strong class="text-stone-800">${rp(m.liquidCost)}</strong></span>
+                <span>Kemasan: <strong class="text-stone-800">${rp(m.pkgCost)}</strong></span>
+                <span>Operasional: <strong class="text-blue-800">${rp(m.overheadCost)}</strong></span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-stone-100 text-center">
+              <div class="bg-stone-50 rounded-xl p-2">
+                <p class="text-[10px] text-stone-400 uppercase">HPP All-In</p>
+                <p class="text-xs sm:text-sm font-bold text-stone-900 mt-0.5">${rp(m.totalHpp)}</p>
+              </div>
+              <div class="bg-stone-50 rounded-xl p-2">
+                <p class="text-[10px] text-stone-400 uppercase">Harga Jual</p>
+                <p class="text-xs sm:text-sm font-bold text-amber-800 mt-0.5">${rp(f.selling_price)}</p>
+              </div>
+              <div class="bg-emerald-50 rounded-xl p-2">
+                <p class="text-[10px] text-emerald-700 uppercase">Margin</p>
+                <p class="text-xs sm:text-sm font-bold text-emerald-800 mt-0.5">${m.margin.toFixed(0)}%</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      refreshIcons();
+    }
+
+    function toggleOpexHelper() {
+      document.getElementById('opex-calc-box').classList.toggle('hidden');
+    }
+
+    function applyOpexEstimate() {
+      const monthly = Number(document.getElementById('opex-monthly-est').value) || 0;
+      const qty = Number(document.getElementById('opex-monthly-qty').value) || 0;
+      if (monthly > 0 && qty > 0) {
+        document.getElementById('f-overhead').value = Math.round(monthly / qty);
+        recalcFormulaHPP();
+      }
+    }
+
+    function openFormulaModal(editId = '') {
+      if (state.ingredients.length === 0) {
+        return showToast('Input bahan baku & packaging terlebih dahulu', 'error');
+      }
+      document.getElementById('formula-form').reset();
+      document.getElementById('f-edit-id').value = editId;
+      document.getElementById('f-liquid-rows').innerHTML = '';
+      document.getElementById('f-pkg-rows').innerHTML = '';
+      document.getElementById('opex-calc-box').classList.add('hidden');
+
+      if (editId) {
+        const f = state.formulas.find(x => x.id === editId);
+        if (!f) return;
+        document.getElementById('formula-modal-title').textContent = 'Edit Formula & Biaya Operasional';
+        document.getElementById('f-name').value = f.name;
+        document.getElementById('f-size').value = f.bottle_size_ml;
+        document.getElementById('f-price').value = f.selling_price;
+        document.getElementById('f-notes').value = f.notes || '';
+        document.getElementById('f-overhead').value = Number(f.overhead_cost) || 0;
+
+        (f.liquid_items || []).forEach(li => addLiquidRow(li.ingredient_id, li.percentage));
+        (f.packaging_items || []).forEach(pi => addPackagingRow(pi.ingredient_id, pi.qty_per_bottle));
+        if ((f.liquid_items || []).length === 0) addLiquidRow();
+        if ((f.packaging_items || []).length === 0) addPackagingRow();
+      } else {
+        document.getElementById('formula-modal-title').textContent = 'Racik Formula Parfum Baru';
+        document.getElementById('f-overhead').value = 2500;
+        addLiquidRow();
+        addPackagingRow();
+      }
+
+      recalcFormulaHPP();
+      openModal('modal-formula');
+    }
+
+    function addLiquidRow(selectedId = '', pct = '') {
+      const liquids = state.ingredients.filter(i => i.category !== 'Packaging');
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2 f-liq-row';
+      row.innerHTML = `
+        <select onchange="recalcFormulaHPP()" class="f-liq-id flex-1 px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs">
+          ${liquids.map(i => {
+            const norm = getNormalizedIng(i);
+            return `<option value="${i.id}" ${i.id === selectedId ? 'selected' : ''}>${esc(i.name)} (BJ ${fmtNum(norm.bj, 3)} • ${rp(norm.costPerBase)}/g)</option>`;
+          }).join('')}
+        </select>
+        <div class="relative w-24">
+          <input type="number" step="any" min="0" max="100" value="${pct}" placeholder="20" oninput="recalcFormulaHPP()"
+            class="f-liq-pct w-full px-3 py-2 pr-6 rounded-xl border border-stone-300 bg-white text-xs text-right font-semibold" />
+          <span class="absolute right-2.5 top-2 text-xs text-stone-400">%</span>
+        </div>
+        <button type="button" onclick="this.parentElement.remove(); recalcFormulaHPP();" class="p-1.5 text-stone-400 hover:text-rose-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      `;
+      document.getElementById('f-liquid-rows').appendChild(row);
+      recalcFormulaHPP();
+      refreshIcons();
+    }
+
+    function addPackagingRow(selectedId = '', qty = 1) {
+      const pkgs = state.ingredients.filter(i => i.category === 'Packaging');
+      const list = pkgs.length > 0 ? pkgs : state.ingredients;
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2 f-pkg-row';
+      row.innerHTML = `
+        <select onchange="recalcFormulaHPP()" class="f-pkg-id flex-1 px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs">
+          ${list.map(i => {
+            const norm = getNormalizedIng(i);
+            return `<option value="${i.id}" ${i.id === selectedId ? 'selected' : ''}>${esc(i.name)} (${rp(norm.costPerBase)}/${norm.baseUnit})</option>`;
+          }).join('')}
+        </select>
+        <input type="number" step="any" min="0" value="${qty}" oninput="recalcFormulaHPP()"
+          class="f-pkg-qty w-20 px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs text-right font-semibold" />
+        <button type="button" onclick="this.parentElement.remove(); recalcFormulaHPP();" class="p-1.5 text-stone-400 hover:text-rose-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      `;
+      document.getElementById('f-pkg-rows').appendChild(row);
+      recalcFormulaHPP();
+      refreshIcons();
+    }
+
+    function autoFillSolvent() {
+      const solvent = state.ingredients.find(i => i.category === 'Pelarut & Fixative');
+      if (!solvent) return showToast('Belum ada item kategori Pelarut & Fixative', 'error');
+
+      let usedPct = 0;
+      document.querySelectorAll('.f-liq-row').forEach(row => {
+        usedPct += Number(row.querySelector('.f-liq-pct').value) || 0;
+      });
+      const rem = Math.max(0, +(100 - usedPct).toFixed(2));
+      if (rem <= 0) return showToast('Total persentase sudah 100%');
+      addLiquidRow(solvent.id, rem);
+    }
+
+    function collectFormulaDraft() {
+      const bottle_size_ml = Number(document.getElementById('f-size').value) || 0;
+      const selling_price = Number(document.getElementById('f-price').value) || 0;
+      const overhead_cost = Number(document.getElementById('f-overhead').value) || 0;
+      const liquid_items = [];
+      let totalPct = 0;
+
+      document.querySelectorAll('.f-liq-row').forEach(row => {
+        const ingredient_id = row.querySelector('.f-liq-id').value;
+        const percentage = Number(row.querySelector('.f-liq-pct').value) || 0;
+        if (ingredient_id && percentage > 0) {
+          liquid_items.push({ ingredient_id, percentage });
+          totalPct += percentage;
+        }
+      });
+
+      const packaging_items = [];
+      document.querySelectorAll('.f-pkg-row').forEach(row => {
+        const ingredient_id = row.querySelector('.f-pkg-id').value;
+        const qty_per_bottle = Number(row.querySelector('.f-pkg-qty').value) || 0;
+        if (ingredient_id && qty_per_bottle > 0) {
+          packaging_items.push({ ingredient_id, qty_per_bottle });
+        }
+      });
+
+      return { bottle_size_ml, selling_price, overhead_cost, liquid_items, packaging_items, totalPct };
+    }
+
+    function recalcFormulaHPP() {
+      const draft = collectFormulaDraft();
+      const pctBadge = document.getElementById('f-pct-badge');
+      const roundedPct = +draft.totalPct.toFixed(2);
+      pctBadge.textContent = `${roundedPct}%`;
+      pctBadge.className = Math.abs(roundedPct - 100) < 0.01
+        ? 'ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800'
+        : 'ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800';
+
+      const m = calculateFormulaMetrics(draft);
+      document.getElementById('f-mix-bj').textContent = `${fmtNum(m.mixBJ, 3)} g/mL`;
+      document.getElementById('f-net-weight').textContent = `${fmtNum(m.netWeightGrams)} gram`;
+      document.getElementById('f-preview-liq').textContent = rp(m.liquidCost);
+      document.getElementById('f-preview-pkg').textContent = rp(m.pkgCost);
+      document.getElementById('f-preview-ovh').textContent = rp(m.overheadCost);
+      document.getElementById('f-preview-hpp').textContent = rp(m.totalHpp);
+      document.getElementById('f-preview-profit').textContent = rp(m.profit);
+      document.getElementById('f-preview-margin').textContent = `${m.margin.toFixed(1)}%`;
+    }
+
+    document.getElementById('formula-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('f-edit-id').value;
+      const name = document.getElementById('f-name').value.trim();
+      const notes = document.getElementById('f-notes').value.trim();
+      const draft = collectFormulaDraft();
+
+      if (Math.abs(draft.totalPct - 100) > 0.05) {
+        return showToast(`Total komposisi cairan harus 100% (sekarang ${draft.totalPct}%)`, 'error');
+      }
+
+      const payload = {
+        name,
+        bottle_size_ml: draft.bottle_size_ml,
+        selling_price: draft.selling_price,
+        overhead_cost: draft.overhead_cost,
+        notes,
+        liquid_items: draft.liquid_items,
+        packaging_items: draft.packaging_items
+      };
+
+      if (editId) {
+        const { data: updated, error } = await sb.from('formulas').update(payload).eq('id', editId).select().single();
+        if (error) return showToast('Gagal memperbarui formula: ' + error.message, 'error');
+
+        const metrics = calculateFormulaMetrics(updated);
+        await sb.from('finished_goods').update({
+          variant_name: name,
+          bottle_size_ml: draft.bottle_size_ml,
+          unit_hpp: metrics.totalHpp,
+          unit_overhead: metrics.overheadCost,
+          selling_price: draft.selling_price
+        }).eq('formula_id', editId);
+
+        closeModal('modal-formula');
+        showToast(`Formula "${name}" & HPP diperbarui`);
+      } else {
+        const { data: inserted, error } = await sb.from('formulas').insert([payload]).select().single();
+        if (error) return showToast('Gagal menyimpan formula: ' + error.message, 'error');
+
+        const metrics = calculateFormulaMetrics(inserted);
+        await sb.from('finished_goods').insert([{
+          formula_id: inserted.id,
+          variant_name: name,
+          bottle_size_ml: draft.bottle_size_ml,
+          stock: 0,
+          unit_hpp: metrics.totalHpp,
+          unit_overhead: metrics.overheadCost,
+          selling_price: draft.selling_price
+        }]);
+
+        closeModal('modal-formula');
+        showToast(`Formula "${name}" berhasil disimpan`);
+      }
+
+      loadAllData();
+    });
+
+    async function deleteFormula(id) {
+      if (!confirm('Hapus formula ini?')) return;
+      const { error } = await sb.from('formulas').delete().eq('id', id);
+      if (error) return showToast('Gagal menghapus: ' + error.message, 'error');
+      showToast('Formula dihapus');
+      loadAllData();
+    }
+
+    // ==================== PRODUKSI BATCH, JERIGEN, KEMAS & EDIT TERJUAL ====================
+    function getSelectedProdMode() {
+      const checked = document.querySelector('input[name="prod-mode"]:checked');
+      return checked ? checked.value : 'bulk';
+    }
+
+    function computeBatchRequirements(formula, qty, mode = 'bulk') {
+      const reqMap = new Map();
+      const metrics = calculateFormulaMetrics(formula);
+
+      (formula.liquid_items || []).forEach(li => {
+        const neededGrams = (Number(li.percentage) / 100) * metrics.netWeightGrams * qty;
+        reqMap.set(li.ingredient_id, (reqMap.get(li.ingredient_id) || 0) + neededGrams);
+      });
+
+      if (mode === 'bottled') {
+        (formula.packaging_items || []).forEach(pi => {
+          const neededPcs = (Number(pi.qty_per_bottle) || 0) * qty;
+          reqMap.set(pi.ingredient_id, (reqMap.get(pi.ingredient_id) || 0) + neededPcs);
+        });
+      }
+
+      const list = [];
+      let allSufficient = true;
+
+      reqMap.forEach((needed, ingId) => {
+        const ing = state.ingredients.find(i => i.id === ingId);
+        const norm = getNormalizedIng(ing);
+        const available = norm.stockBase;
+        const sufficient = available >= (needed - 0.001);
+        if (!sufficient) allSufficient = false;
+        list.push({
+          ingId,
+          name: ing ? ing.name : 'Item terhapus',
+          unit: norm.baseUnit,
+          bj: norm.bj,
+          needed,
+          available,
+          sufficient
+        });
+      });
+
+      return { list, allSufficient, metrics };
+    }
+
+    function updateProductionPreview() {
+      const fId = document.getElementById('prod-formula').value;
+      const qty = Number(document.getElementById('prod-qty').value) || 0;
+      const mode = getSelectedProdMode();
+      const box = document.getElementById('prod-preview-box');
+      const btn = document.getElementById('prod-submit-btn');
+
+      const formula = state.formulas.find(f => f.id === fId);
+      if (!formula || qty <= 0) {
+        box.classList.add('hidden');
+        btn.disabled = true;
+        return;
+      }
+
+      box.classList.remove('hidden');
+      const { list, allSufficient, metrics } = computeBatchRequirements(formula, qty, mode);
+      document.getElementById('prod-est-hpp').textContent = `HPP All-In: ${rp(metrics.totalHpp)}/btl`;
+      document.getElementById('prod-mix-info').innerHTML = mode === 'bulk'
+        ? `Mode <strong>Jerigen Bulk</strong>: Total <strong>${fmtNum(metrics.netWeightGrams * qty)} gram</strong> (${fmtNum(formula.bottle_size_ml * qty)} mL). <em>Packaging belum dipotong.</em>`
+        : `Mode <strong>Langsung Botol</strong>: Total <strong>${fmtNum(metrics.netWeightGrams * qty)} gram</strong> + memotong kemasan <strong>${qty} botol</strong>.`;
+
+      document.getElementById('prod-req-list').innerHTML = list.map(r => {
+        const eqMlText = r.unit === 'g' ? ` (≈ ${fmtNum(r.needed / r.bj)} mL)` : '';
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-stone-200/60 last:border-0 gap-2">
+            <span class="text-stone-700">${esc(r.name)}</span>
+            <span class="font-semibold text-right ${r.sufficient ? 'text-emerald-700' : 'text-rose-600'}">
+              ${r.unit === 'g' ? 'Timbang' : 'Ambil'} ${fmtNum(r.needed)} ${r.unit}${eqMlText} <span class="text-stone-400 font-normal">(Stok: ${fmtNum(r.available)})</span>
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      btn.disabled = !allSufficient;
+      if (!allSufficient) {
+        btn.textContent = 'Stok Bahan Tidak Mencukupi';
+      } else if (mode === 'bulk') {
+        btn.textContent = `Racik ke Jerigen (${fmtNum(metrics.netWeightGrams * qty)} g) & Potong Bahan Cair`;
+      } else {
+        btn.textContent = `Produksi & Kemas (${qty} Botol) Sekarang`;
+      }
+    }
+
+    function updateMacerationDate() {
+      const pDate = document.getElementById('prod-date').value;
+      if (pDate) {
+        document.getElementById('prod-maceration-end').value = addDaysISO(pDate, 14);
+      }
+    }
+
+    document.getElementById('production-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fId = document.getElementById('prod-formula').value;
+      const qty = Number(document.getElementById('prod-qty').value) || 0;
+      const mode = getSelectedProdMode();
+      const batch_code = document.getElementById('prod-code').value.trim();
+      const production_date = document.getElementById('prod-date').value;
+      const maceration_end_date = document.getElementById('prod-maceration-end').value;
+
+      const formula = state.formulas.find(f => f.id === fId);
+      if (!formula || qty <= 0) return;
+
+      const { list, allSufficient, metrics } = computeBatchRequirements(formula, qty, mode);
+      if (!allSufficient) return showToast('Stok bahan tidak mencukupi!', 'error');
+
+      const btn = document.getElementById('prod-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Memproses produksi...';
+
+      for (const item of list) {
+        const ing = state.ingredients.find(i => i.id === item.ingId);
+        const norm = getNormalizedIng(ing);
+        const newStock = Math.max(0, +(item.available - item.needed).toFixed(4));
+        await sb.from('ingredients').update({
+          unit: norm.baseUnit,
+          stock: newStock,
+          cost_per_unit: +norm.costPerBase.toFixed(4)
+        }).eq('id', item.ingId);
+      }
+
+      const isDirectBottled = mode === 'bottled';
+      const totalWeightG = +(metrics.netWeightGrams * qty).toFixed(4);
+
+      await sb.from('batches').insert([{
+        batch_code,
+        formula_id: formula.id,
+        variant_name: formula.name,
+        qty_produced: qty,
+        bottled_qty: isDirectBottled ? qty : 0,
+        sold_qty: 0,
+        net_weight_g: totalWeightG,
+        production_date,
+        maceration_end_date,
+        status: isDirectBottled ? 'Siap Jual (Full)' : 'Maserasi (Jerigen)',
+        unit_hpp: metrics.totalHpp,
+        unit_overhead: metrics.overheadCost
+      }]);
+
+      if (isDirectBottled) {
+        await addFinishedGoodsStock(formula, qty, metrics);
+      }
+
+      await sb.from('transactions').insert([{
+        tx_date: production_date,
+        tx_type: 'Produksi Batch',
+        description: isDirectBottled
+          ? `Produksi & Kemas ${batch_code}: ${formula.name} (${qty} botol)`
+          : `Racik Bulk Jerigen ${batch_code}: ${formula.name} (${fmtNum(totalWeightG)} g / setara ${qty} btl)`,
+        qty,
+        net_amount: 0,
+        total_hpp: (isDirectBottled ? metrics.totalHpp : metrics.liquidCost) * qty
+      }]);
+
+      showToast(isDirectBottled
+        ? `Produksi ${qty} botol ${formula.name} siap jual!`
+        : `Racikan ${fmtNum(totalWeightG)}g masuk ke Jerigen (${batch_code})!`);
+      setDefaultDates();
+      loadAllData();
+    });
+
+    async function addFinishedGoodsStock(formula, addQty, metrics) {
+      const existingFg = state.finishedGoods.find(fg => fg.formula_id === formula.id);
+      if (existingFg) {
+        const prevStock = Number(existingFg.stock) || 0;
+        const prevHpp = Number(existingFg.unit_hpp) || 0;
+        const prevOvh = Number(existingFg.unit_overhead) || 0;
+        const totalStock = prevStock + addQty;
+        const avgHpp = totalStock > 0 ? ((prevStock * prevHpp) + (addQty * metrics.totalHpp)) / totalStock : metrics.totalHpp;
+        const avgOvh = totalStock > 0 ? ((prevStock * prevOvh) + (addQty * metrics.overheadCost)) / totalStock : metrics.overheadCost;
+
+        await sb.from('finished_goods').update({
+          stock: totalStock,
+          unit_hpp: avgHpp,
+          unit_overhead: avgOvh,
+          selling_price: formula.selling_price,
+          updated_at: new Date().toISOString()
+        }).eq('id', existingFg.id);
+      } else {
+        await sb.from('finished_goods').insert([{
+          formula_id: formula.id,
+          variant_name: formula.name,
+          bottle_size_ml: formula.bottle_size_ml,
+          stock: addQty,
+          unit_hpp: metrics.totalHpp,
+          unit_overhead: metrics.overheadCost,
+          selling_price: formula.selling_price
+        }]);
+      }
+    }
+
+    function renderProduction() {
+      const sel = document.getElementById('prod-formula');
+      const currentVal = sel.value;
+      sel.innerHTML = `<option value="">-- Pilih Formula --</option>` + state.formulas.map(f =>
+        `<option value="${f.id}" ${f.id === currentVal ? 'selected' : ''}>${esc(f.name)} (${f.bottle_size_ml} mL)</option>`
+      ).join('');
+      updateProductionPreview();
+
+      const batchesBox = document.getElementById('batches-list');
+      if (state.batches.length === 0) {
+        batchesBox.innerHTML = `<p class="text-xs text-stone-400 py-6 text-center">Belum ada riwayat batch produksi.</p>`;
+        return;
+      }
+
+      const today = new Date(todayISO());
+      batchesBox.innerHTML = state.batches.map(b => {
+        const s = getBatchStats(b);
+        const end = new Date(b.maceration_end_date);
+        const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+        const unitPrice = s.formula ? Number(s.formula.selling_price) : 0;
+        const unitOvh = Number(b.unit_overhead) || (s.metrics ? s.metrics.overheadCost : 0);
+        const batchOmzet = s.sold * unitPrice;
+        const batchOps = s.sold * unitOvh;
+        const batchProfit = batchOmzet - (s.sold * (Number(b.unit_hpp) || 0));
+
+        let badgeClass = 'bg-amber-100 text-amber-900';
+        let statusLabel = b.status;
+        if (s.remainingBulk === 0 && s.sold >= s.produced) {
+          badgeClass = 'bg-stone-200 text-stone-700';
+          statusLabel = 'Habis Terjual';
+        } else if (s.remainingBulk === 0) {
+          badgeClass = 'bg-emerald-100 text-emerald-800';
+          statusLabel = 'Siap Jual (Full Botol)';
+        } else if (s.bottled > 0) {
+          badgeClass = 'bg-blue-100 text-blue-900';
+          statusLabel = 'Parsial (Jerigen + Botol)';
+        }
+
+        return `
+          <div class="p-4 rounded-2xl border border-stone-200 bg-stone-50/70 space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[11px] font-mono font-bold text-stone-700 bg-white px-2 py-0.5 rounded border border-stone-200">${esc(b.batch_code)}</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${esc(statusLabel)}</span>
+                </div>
+                <h3 class="font-bold text-base text-stone-900 mt-1">${esc(b.variant_name)}</h3>
+                <p class="text-[11px] text-stone-500">
+                  Racik: ${b.production_date} • Maserasi: ${b.maceration_end_date} (${diffDays > 0 ? `sisa ${diffDays} hr` : 'matang'})
+                </p>
+              </div>
+              <button onclick="deleteBatch('${b.id}')" class="p-1 text-stone-300 hover:text-rose-600" title="Hapus Batch">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center bg-white rounded-xl p-2.5 border border-stone-200/80">
+              <div>
+                <p class="text-[10px] uppercase text-stone-400">Sisa Jerigen</p>
+                <p class="text-sm font-bold text-amber-900 mt-0.5">${s.remainingBulk} <span class="text-[11px] font-normal">btl</span></p>
+                <p class="text-[10px] text-stone-400">${fmtNum(s.remainingBulkGrams)} g</p>
+              </div>
+              <div class="border-x border-stone-100">
+                <p class="text-[10px] uppercase text-stone-400">Sudah Dikemas</p>
+                <p class="text-sm font-bold text-stone-900 mt-0.5">${s.bottled} <span class="text-[11px] font-normal">/ ${s.produced} btl</span></p>
+                <p class="text-[10px] text-emerald-700">Sisa siap jual: ${s.remainingBottled}</p>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase text-stone-400">Sudah Terjual</p>
+                <p class="text-sm font-bold text-emerald-700 mt-0.5">${s.sold} <span class="text-[11px] font-normal">btl</span></p>
+                <p class="text-[10px] text-stone-400">dari ${s.bottled} kemasan</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] bg-white/80 px-3 py-2 rounded-xl border border-stone-200/60">
+              <span>Omzet: <strong class="text-stone-900">${rp(batchOmzet)}</strong></span>
+              <span>Biaya Ops: <strong class="text-blue-800">${rp(batchOps)}</strong></span>
+              <span>Untung: <strong class="text-emerald-700">${rp(batchProfit)}</strong></span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+              ${s.remainingBulk > 0 ? `
+                <button onclick="openBottlingModal('${b.id}')"
+                  class="px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs">
+                  <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+                  <span>Kemas ke Botol (Potong Kemasan)</span>
+                </button>
+              ` : `<span class="text-[11px] text-stone-400 italic">Semua cairan jerigen sudah dikemas</span>`}
+
+              <div class="flex items-center gap-1.5 bg-white border border-stone-300 rounded-xl px-2.5 py-1.5 self-start sm:self-auto">
+                <span class="text-[11px] font-semibold text-stone-600">Terjual:</span>
+                <input type="number" id="batch-sold-input-${b.id}" min="0" max="${s.bottled}" value="${s.sold}"
+                  class="w-14 text-center text-xs font-bold text-stone-900 border-b border-stone-300 focus:outline-none focus:border-emerald-700" />
+                <button onclick="updateBatchSoldQty('${b.id}')"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold">
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      refreshIcons();
+    }
+
+    // ==================== MODAL KEMAS DARI JERIGEN KE BOTOL ====================
+    function openBottlingModal(batchId) {
+      const b = state.batches.find(x => x.id === batchId);
+      if (!b) return;
+      const s = getBatchStats(b);
+      if (s.remainingBulk <= 0) return showToast('Cairan di jerigen untuk batch ini sudah habis dikemas');
+
+      document.getElementById('bottle-batch-id').value = b.id;
+      document.getElementById('bottle-modal-subtitle').textContent =
+        `Batch ${b.batch_code} (${b.variant_name}) • Tersisa ${s.remainingBulk} botol (${fmtNum(s.remainingBulkGrams)} g) di dalam jerigen.`;
+      document.getElementById('bottle-qty').max = s.remainingBulk;
+      document.getElementById('bottle-qty').value = Math.min(10, s.remainingBulk);
+
+      updateBottlingPreview();
+      openModal('modal-bottle');
+    }
+
+    function fillMaxBottling() {
+      const batchId = document.getElementById('bottle-batch-id').value;
+      const b = state.batches.find(x => x.id === batchId);
+      if (!b) return;
+      const s = getBatchStats(b);
+      document.getElementById('bottle-qty').value = s.remainingBulk;
+      updateBottlingPreview();
+    }
+
+    function updateBottlingPreview() {
+      const batchId = document.getElementById('bottle-batch-id').value;
+      const qty = Number(document.getElementById('bottle-qty').value) || 0;
+      const b = state.batches.find(x => x.id === batchId);
+      const box = document.getElementById('bottle-pkg-list');
+      const btn = document.getElementById('bottle-submit-btn');
+      if (!b) return;
+
+      const s = getBatchStats(b);
+      if (qty <= 0 || qty > s.remainingBulk) {
+        box.innerHTML = `<p class="text-rose-600 font-semibold">Jumlah harus antara 1 sampai ${s.remainingBulk} botol.</p>`;
+        btn.disabled = true;
+        return;
+      }
+
+      const pkgItems = s.formula?.packaging_items || [];
+      if (pkgItems.length === 0) {
+        box.innerHTML = `<p class="text-stone-500">Formula ini belum memiliki daftar packaging. Stok siap jual akan langsung ditambah.</p>`;
+        btn.disabled = false;
+        return;
+      }
+
+      let sufficientAll = true;
+      box.innerHTML = pkgItems.map(pi => {
+        const ing = state.ingredients.find(i => i.id === pi.ingredient_id);
+        const norm = getNormalizedIng(ing);
+        const needed = (Number(pi.qty_per_bottle) || 0) * qty;
+        const ok = norm.stockBase >= needed;
+        if (!ok) sufficientAll = false;
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-stone-200/60 last:border-0">
+            <span class="text-stone-700">${ing ? esc(ing.name) : 'Kemasan terhapus'}</span>
+            <span class="font-semibold ${ok ? 'text-emerald-700' : 'text-rose-600'}">
+              Potong ${fmtNum(needed)} ${norm.baseUnit} (Stok: ${fmtNum(norm.stockBase)})
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      btn.disabled = !sufficientAll;
+      btn.textContent = sufficientAll
+        ? `Kemas ${qty} Botol & Potong Stok Packaging`
+        : 'Stok Packaging Tidak Mencukupi';
+    }
+
+    document.getElementById('bottle-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const batchId = document.getElementById('bottle-batch-id').value;
+      const qty = Number(document.getElementById('bottle-qty').value) || 0;
+      const b = state.batches.find(x => x.id === batchId);
+      if (!b) return;
+
+      const s = getBatchStats(b);
+      if (qty <= 0 || qty > s.remainingBulk) return;
+
+      const pkgItems = s.formula?.packaging_items || [];
+      for (const pi of pkgItems) {
+        const ing = state.ingredients.find(i => i.id === pi.ingredient_id);
+        const norm = getNormalizedIng(ing);
+        const needed = (Number(pi.qty_per_bottle) || 0) * qty;
+        if (norm.stockBase < needed) {
+          return showToast(`Stok ${ing?.name || 'packaging'} tidak cukup!`, 'error');
+        }
+      }
+
+      const btn = document.getElementById('bottle-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Memproses kemasan...';
+
+      for (const pi of pkgItems) {
+        const ing = state.ingredients.find(i => i.id === pi.ingredient_id);
+        if (!ing) continue;
+        const norm = getNormalizedIng(ing);
+        const needed = (Number(pi.qty_per_bottle) || 0) * qty;
+        const newStock = Math.max(0, +(norm.stockBase - needed).toFixed(4));
+        await sb.from('ingredients').update({
+          unit: norm.baseUnit,
+          stock: newStock
+        }).eq('id', ing.id);
+      }
+
+      const newBottled = s.bottled + qty;
+      const newStatus = newBottled >= s.produced ? 'Siap Jual (Full)' : 'Siap Jual (Parsial)';
+      await sb.from('batches').update({
+        bottled_qty: newBottled,
+        status: newStatus
+      }).eq('id', b.id);
+
+      if (s.formula && s.metrics) {
+        await addFinishedGoodsStock(s.formula, qty, s.metrics);
+      } else {
+        const existingFg = state.finishedGoods.find(fg => fg.formula_id === b.formula_id);
+        if (existingFg) {
+          await sb.from('finished_goods').update({
+            stock: (Number(existingFg.stock) || 0) + qty,
+            updated_at: new Date().toISOString()
+          }).eq('id', existingFg.id);
+        }
+      }
+
+      await sb.from('transactions').insert([{
+        tx_date: todayISO(),
+        tx_type: 'Produksi Batch',
+        batch_id: b.id,
+        description: `Kemas dari Jerigen ${b.batch_code}: ${qty} botol ${b.variant_name}`,
+        qty,
+        net_amount: 0,
+        total_hpp: 0
+      }]);
+
+      closeModal('modal-bottle');
+      showToast(`${qty} botol ${b.variant_name} selesai dikemas & siap dijual!`);
+      loadAllData();
+    });
+
+    // ==================== EDIT TERJUAL LANGSUNG DI BATCH ====================
+    async function updateBatchSoldQty(batchId) {
+      const b = state.batches.find(x => x.id === batchId);
+      if (!b) return;
+
+      const s = getBatchStats(b);
+      const inputEl = document.getElementById(`batch-sold-input-${batchId}`);
+      const newSold = Math.floor(Number(inputEl.value));
+
+      if (isNaN(newSold) || newSold < 0) {
+        return showToast('Jumlah terjual tidak boleh negatif', 'error');
+      }
+      if (newSold > s.bottled) {
+        inputEl.value = s.sold;
+        return showToast(`Maksimal terjual ${s.bottled} botol (kemas dulu dari jerigen jika kurang)`, 'error');
+      }
+
+      const delta = newSold - s.sold;
+      if (delta === 0) return showToast('Jumlah terjual tidak berubah');
+
+      const fg = state.finishedGoods.find(x => x.formula_id === b.formula_id);
+      if (delta > 0 && fg && Number(fg.stock) < delta) {
+        inputEl.value = s.sold;
+        return showToast(`Stok barang jadi siap jual tinggal ${fg.stock} pcs`, 'error');
+      }
+
+      const sellingPrice = s.formula ? Number(s.formula.selling_price) : (fg ? Number(fg.selling_price) : 0);
+      const unitHpp = Number(b.unit_hpp) || (fg ? Number(fg.unit_hpp) : 0);
+      const unitOvh = Number(b.unit_overhead) || (s.metrics ? s.metrics.overheadCost : (fg ? Number(fg.unit_overhead) : 0));
+
+      const deltaRevenue = delta * sellingPrice;
+      const deltaHpp = delta * unitHpp;
+      const deltaOvh = delta * unitOvh;
+
+      const { error } = await sb.from('batches').update({ sold_qty: newSold }).eq('id', b.id);
+      if (error) return showToast('Gagal update terjual: ' + error.message, 'error');
+
+      if (fg) {
+        const updatedFgStock = Math.max(0, (Number(fg.stock) || 0) - delta);
+        await sb.from('finished_goods').update({
+          stock: updatedFgStock,
+          updated_at: new Date().toISOString()
+        }).eq('id', fg.id);
+      }
+
+      await sb.from('transactions').insert([{
+        tx_date: todayISO(),
+        tx_type: 'Penjualan',
+        channel: 'Update Batch',
+        description: `Update Terjual ${b.batch_code} (${b.variant_name}): ${s.sold} → ${newSold} btl (${delta > 0 ? '+' : ''}${delta} pcs)`,
+        finished_good_id: fg ? fg.id : null,
+        batch_id: b.id,
+        qty: delta,
+        net_amount: deltaRevenue,
+        total_hpp: deltaHpp,
+        overhead_amount: deltaOvh
+      }]);
+
+      showToast(`Terjual diperbarui (${newSold} btl) • Omzet, Biaya Ops & Profit ter-update!`);
+      loadAllData();
+    }
+
+    async function deleteBatch(id) {
+      if (!confirm('Hapus riwayat batch ini?')) return;
+      await sb.from('batches').delete().eq('id', id);
+      showToast('Batch dihapus');
+      loadAllData();
+    }
+
+    // ==================== PENJUALAN & ARUS KAS ====================
+    function renderSalesAndCashflow() {
+      const sel = document.getElementById('sale-fg');
+      const cur = sel.value;
+      sel.innerHTML = `<option value="">-- Pilih Varian --</option>` + state.finishedGoods.map(fg =>
+        `<option value="${fg.id}" ${fg.id === cur ? 'selected' : ''}>${esc(fg.variant_name)} (${fg.bottle_size_ml}ml) — Stok Siap Jual: ${fg.stock} pcs</option>`
+      ).join('');
+      updateSalePreview();
+      renderTransactions();
+    }
+
+    function onSaleProductChange() {
+      const fgId = document.getElementById('sale-fg').value;
+      const fg = state.finishedGoods.find(i => i.id === fgId);
+      if (fg) {
+        document.getElementById('sale-price').value = Number(fg.selling_price) || 0;
+      }
+      updateSalePreview();
+    }
+
+    function updateSalePreview() {
+      const fgId = document.getElementById('sale-fg').value;
+      const qty = Number(document.getElementById('sale-qty').value) || 0;
+      const price = Number(document.getElementById('sale-price').value) || 0;
+      const fee = Number(document.getElementById('sale-fee').value) || 0;
+      const fg = state.finishedGoods.find(i => i.id === fgId);
+
+      const netCash = Math.max(0, (qty * price) - fee);
+      const totalHpp = fg ? (Number(fg.unit_hpp) || 0) * qty : 0;
+      const totalOvh = fg ? (Number(fg.unit_overhead) || 0) * qty : 0;
+      const profit = netCash - totalHpp;
+
+      document.getElementById('sale-net-preview').textContent = rp(netCash);
+      document.getElementById('sale-ovh-preview').textContent = rp(totalOvh);
+      document.getElementById('sale-profit-preview').textContent = rp(profit);
+    }
+
+    document.getElementById('sale-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fgId = document.getElementById('sale-fg').value;
+      const qty = Number(document.getElementById('sale-qty').value) || 0;
+      const channel = document.getElementById('sale-channel').value;
+      const price = Number(document.getElementById('sale-price').value) || 0;
+      const fee = Number(document.getElementById('sale-fee').value) || 0;
+      const tx_date = document.getElementById('sale-date').value;
+      const note = document.getElementById('sale-note').value.trim();
+
+      const fg = state.finishedGoods.find(i => i.id === fgId);
+      if (!fg) return showToast('Pilih varian parfum terlebih dahulu', 'error');
+      if (qty <= 0 || qty > Number(fg.stock)) {
+        return showToast(`Stok siap jual ${fg.variant_name} tinggal ${fg.stock} pcs`, 'error');
+      }
+
+      const net_amount = Math.max(0, (qty * price) - fee);
+      const total_hpp = (Number(fg.unit_hpp) || 0) * qty;
+      const overhead_amount = (Number(fg.unit_overhead) || 0) * qty;
+      const newStock = Number(fg.stock) - qty;
+
+      const { error: fgErr } = await sb.from('finished_goods')
+        .update({ stock: newStock, updated_at: new Date().toISOString() })
+        .eq('id', fg.id);
+
+      if (fgErr) return showToast('Gagal memotong stok: ' + fgErr.message, 'error');
+
+      let remToAssign = qty;
+      const matchingBatches = [...state.batches]
+        .reverse()
+        .filter(b => b.formula_id === fg.formula_id);
+
+      for (const b of matchingBatches) {
+        if (remToAssign <= 0) break;
+        const s = getBatchStats(b);
+        if (s.remainingBottled > 0) {
+          const take = Math.min(remToAssign, s.remainingBottled);
+          await sb.from('batches').update({ sold_qty: s.sold + take }).eq('id', b.id);
+          remToAssign -= take;
+        }
+      }
+
+      const desc = `Jual ${qty}x ${fg.variant_name} (${channel})${note ? ' — ' + note : ''}`;
+      await sb.from('transactions').insert([{
+        tx_date,
+        tx_type: 'Penjualan',
+        channel,
+        description: desc,
+        finished_good_id: fg.id,
+        qty,
+        net_amount,
+        total_hpp,
+        overhead_amount
+      }]);
+
+      document.getElementById('sale-note').value = '';
+      document.getElementById('sale-qty').value = 1;
+      document.getElementById('sale-fee').value = 0;
+      showToast(`Penjualan ${qty} pcs ${fg.variant_name} tercatat!`);
+      loadAllData();
+    });
+
+    document.getElementById('cashflow-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const tx_type = document.getElementById('cf-type').value;
+      const amount = Number(document.getElementById('cf-amount').value) || 0;
+      const tx_date = document.getElementById('cf-date').value;
+      const description = document.getElementById('cf-desc').value.trim();
+
+      if (amount <= 0) return;
+      const net_amount = tx_type === 'Modal Masuk' ? amount : -amount;
+
+      const { error } = await sb.from('transactions').insert([{
+        tx_date,
+        tx_type,
+        description,
+        net_amount
+      }]);
+
+      if (error) return showToast('Gagal mencatat transaksi: ' + error.message, 'error');
+      document.getElementById('cf-amount').value = '';
+      document.getElementById('cf-desc').value = '';
+      showToast(`${tx_type} berhasil dicatat`);
+      loadAllData();
+    });
+
+    function renderTxRow(tx, allowDelete = true) {
+      const net = Number(tx.net_amount) || 0;
+      const isPositive = net > 0;
+      const isNeutral = net === 0;
+      const amountColor = isNeutral ? 'text-stone-500' : (isPositive ? 'text-emerald-700' : 'text-rose-700');
+      const prefix = isPositive ? '+' : '';
+
+      return `
+        <div class="py-3 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-stone-100 text-stone-700">${esc(tx.tx_type)}</span>
+              <span class="text-[11px] text-stone-400">${esc(tx.tx_date)}</span>
+            </div>
+            <p class="text-xs sm:text-sm font-semibold text-stone-900 truncate mt-1">${esc(tx.description)}</p>
+          </div>
+          <div class="flex items-center gap-2.5 shrink-0">
+            <span class="text-xs sm:text-sm font-bold ${amountColor}">${isNeutral ? 'Stok Updated' : prefix + rp(net)}</span>
+            ${allowDelete ? `
+              <button onclick="deleteTransaction('${tx.id}')" class="text-stone-300 hover:text-rose-600" title="Hapus catatan">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTransactions() {
+      const filter = document.getElementById('tx-filter').value;
+      const list = filter === 'ALL'
+        ? state.transactions
+        : state.transactions.filter(t => t.tx_type === filter);
+
+      const box = document.getElementById('transactions-ledger');
+      if (list.length === 0) {
+        box.innerHTML = `<p class="text-xs text-stone-400 py-6 text-center">Belum ada data transaksi pada filter ini.</p>`;
+        return;
+      }
+      box.innerHTML = list.map(tx => renderTxRow(tx, true)).join('');
+      refreshIcons();
+    }
+
+    async function deleteTransaction(id) {
+      if (!confirm('Hapus catatan transaksi ini dari buku kas? (Stok fisik tidak berubah otomatis)')) return;
+      await sb.from('transactions').delete().eq('id', id);
+      showToast('Catatan transaksi dihapus');
+      loadAllData();
+    }
+
+    // ==================== SAMPLE DATA SEEDER & RESET ====================
+    async function seedSampleData() {
+      const btn = document.getElementById('seed-btn');
+      btn.disabled = true;
+      btn.textContent = 'Mengisi data contoh...';
+
+      const { data: ings, error } = await sb.from('ingredients').insert([
+        { name: 'Bibit Baccarat Rouge Type', category: 'Bibit Parfum', unit: 'g', stock: 250, cost_per_unit: 1800, min_stock: 50, bj: 0.950 },
+        { name: 'Bibit Bergamot Calabrian', category: 'Bibit Parfum', unit: 'g', stock: 150, cost_per_unit: 1600, min_stock: 40, bj: 0.880 },
+        { name: 'Alkohol Denat Perfumery Grade', category: 'Pelarut & Fixative', unit: 'g', stock: 4025, cost_per_unit: 50, min_stock: 500, bj: 0.805 },
+        { name: 'DPG / Fixative Galaxolide', category: 'Pelarut & Fixative', unit: 'g', stock: 300, cost_per_unit: 180, min_stock: 50, bj: 1.023 },
+        { name: 'Botol Kaca 30ml + Crimpless Sprayer', category: 'Packaging', unit: 'pcs', stock: 100, cost_per_unit: 5500, min_stock: 20, bj: 1 },
+        { name: 'Stiker Vinyl Waterproof + Hardbox', category: 'Packaging', unit: 'pcs', stock: 100, cost_per_unit: 3500, min_stock: 20, bj: 1 }
+      ]).select();
+
+      if (error) {
+        btn.disabled = false;
+        return showToast('Gagal mengisi data contoh: ' + error.message, 'error');
+      }
+
+      const byName = (n) => ings.find(i => i.name === n)?.id;
+      const formulaPayload = {
+        name: 'Saffron Rouge EDP',
+        bottle_size_ml: 30,
+        selling_price: 95000,
+        overhead_cost: 2500,
+        notes: 'Top: Saffron, Bergamot | Base: Amberwood, Cedar',
+        liquid_items: [
+          { ingredient_id: byName('Bibit Baccarat Rouge Type'), percentage: 22 },
+          { ingredient_id: byName('Bibit Bergamot Calabrian'), percentage: 3 },
+          { ingredient_id: byName('DPG / Fixative Galaxolide'), percentage: 5 },
+          { ingredient_id: byName('Alkohol Denat Perfumery Grade'), percentage: 70 }
+        ],
+        packaging_items: [
+          { ingredient_id: byName('Botol Kaca 30ml + Crimpless Sprayer'), qty_per_bottle: 1 },
+          { ingredient_id: byName('Stiker Vinyl Waterproof + Hardbox'), qty_per_bottle: 1 }
+        ]
+      };
+
+      const { data: f1 } = await sb.from('formulas').insert([formulaPayload]).select().single();
+
+      if (f1) {
+        state.ingredients = ings;
+        const metrics = calculateFormulaMetrics(f1);
+        await sb.from('batches').insert([{
+          batch_code: 'BCH-SAMPLE-01',
+          formula_id: f1.id,
+          variant_name: f1.name,
+          qty_produced: 20,
+          bottled_qty: 10,
+          sold_qty: 0,
+          net_weight_g: +(metrics.netWeightGrams * 20).toFixed(4),
+          production_date: todayISO(),
+          maceration_end_date: addDaysISO(todayISO(), 14),
+          status: 'Siap Jual (Parsial)',
+          unit_hpp: metrics.totalHpp,
+          unit_overhead: metrics.overheadCost
+        }]);
+
+        await sb.from('finished_goods').insert([{
+          formula_id: f1.id,
+          variant_name: f1.name,
+          bottle_size_ml: 30,
+          stock: 10,
+          unit_hpp: metrics.totalHpp,
+          unit_overhead: metrics.overheadCost,
+          selling_price: 95000
+        }]);
+      }
+
+      await sb.from('transactions').insert([
+        { tx_date: todayISO(), tx_type: 'Modal Masuk', description: 'Modal awal patungan berdua', net_amount: 3000000 }
+      ]);
+
+      showToast('Data contoh bisnis parfum berhasil dimuat!');
+      loadAllData();
+    }
+
+    async function clearAllData() {
+      if (!confirm('PERINGATAN: Semua data bahan baku, formula, batch, stok barang jadi, dan transaksi akan dihapus permanen. Lanjutkan?')) return;
+      await Promise.all([
+        sb.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        sb.from('batches').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        sb.from('finished_goods').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        sb.from('formulas').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        sb.from('ingredients').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      ]);
+      showToast('Seluruh data berhasil dikosongkan');
+      loadAllData();
+    }
+
+    initAuth();
+  </script>
+</body>
+</html>
